@@ -1,8 +1,9 @@
 import { db } from '@/lib/db'
+import type { Tx } from '@/lib/db'
 import { logEvent } from '@/modules/audit-events/service'
 
 export async function createOrganization(data: { name: string }, actorId: string) {
-  return db.$transaction(async (tx) => {
+  return db.$transaction(async (tx: Tx) => {
     const org = await tx.clientOrganization.create({ data: { name: data.name } })
     await logEvent(tx, { entityType: 'ClientOrganization', entityId: org.id, action: 'create', actorId, actorRole: 'admin' })
     return org
@@ -13,7 +14,7 @@ export async function createContact(
   data: { userId: string; organizationId: string; name: string; email: string },
   actorId: string
 ) {
-  return db.$transaction(async (tx) => {
+  return db.$transaction(async (tx: Tx) => {
     const contact = await tx.clientContact.create({ data })
     await logEvent(tx, { entityType: 'ClientContact', entityId: contact.id, action: 'create', actorId, actorRole: 'admin' })
     return contact

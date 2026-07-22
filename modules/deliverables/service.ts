@@ -1,8 +1,9 @@
 import { db } from '@/lib/db'
+import type { Tx } from '@/lib/db'
 import { logEvent } from '@/modules/audit-events/service'
 
 export async function createDeliverable(engagementId: string, actorId: string) {
-  return db.$transaction(async (tx) => {
+  return db.$transaction(async (tx: Tx) => {
     const deliverable = await tx.deliverable.create({
       data: { engagementId, status: 'SUBMITTED', submittedAt: new Date() },
     })

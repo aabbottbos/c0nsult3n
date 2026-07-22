@@ -1,7 +1,9 @@
 import { PrismaClient } from '../app/generated/prisma'
+import { PrismaNeon } from '@prisma/adapter-neon'
 import { afterEach } from 'vitest'
 
-const prisma = new PrismaClient()
+const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! })
+const prisma = new PrismaClient({ adapter })
 
 afterEach(async () => {
   // Delete in reverse FK dependency order

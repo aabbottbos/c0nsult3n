@@ -1,14 +1,16 @@
 import { db } from '@/lib/db'
+import type { Tx } from '@/lib/db'
 import { logEvent } from '@/modules/audit-events/service'
 import { markProposalSubmitted } from '@/modules/invitations/service'
+import type { Prisma } from '@/app/generated/prisma'
 
 export async function createProposal(
   data: { invitationId: string; consultantId: string; fitStatement: string; deviations?: Record<string, unknown> },
   actorId: string
 ) {
-  const proposal = await db.$transaction(async (tx) => {
+  const proposal = await db.$transaction(async (tx: Tx) => {
     const p = await tx.proposal.create({
-      data: { ...data, deviations: data.deviations ?? {}, status: 'SUBMITTED' },
+      data: { ...data, deviations: (data.deviations ?? {}) as unknown as Prisma.InputJsonValue, status: 'SUBMITTED' },
     })
     await logEvent(tx, { entityType: 'Proposal', entityId: p.id, action: 'create', actorId, actorRole: 'consultant' })
     return p
@@ -18,7 +20,7 @@ export async function createProposal(
 }
 
 export async function selectProposal(proposalId: string, actorId: string) {
-  return db.$transaction(async (tx) => {
+  return db.$transaction(async (tx: Tx) => {
     const proposal = await tx.proposal.findUniqueOrThrow({ where: { id: proposalId } })
     if (proposal.status !== 'SUBMITTED') throw new Error(`Cannot select proposal in status ${proposal.status}`)
     const updated = await tx.proposal.update({ where: { id: proposalId }, data: { status: 'SELECTED' } })

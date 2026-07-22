@@ -1,11 +1,12 @@
 import { db } from '@/lib/db'
+import type { Tx } from '@/lib/db'
 import { logEvent } from '@/modules/audit-events/service'
 import { markScopeApproved } from '@/modules/projects/service'
 import type { Role, ScopeStatus } from '@/app/generated/prisma'
 import { SCOPE_TRANSITIONS } from './types'
 
 async function transition(scopeId: string, to: ScopeStatus, action: string, actorId: string, actorRole: Role) {
-  return db.$transaction(async (tx) => {
+  return db.$transaction(async (tx: Tx) => {
     const scope = await tx.scope.findUniqueOrThrow({ where: { id: scopeId } })
     const allowed = SCOPE_TRANSITIONS[scope.status]
     if (!allowed.includes(to)) throw new Error(`Invalid transition: ${scope.status} → ${to}`)
@@ -28,7 +29,7 @@ export async function createScope(
   },
   actorId: string
 ) {
-  return db.$transaction(async (tx) => {
+  return db.$transaction(async (tx: Tx) => {
     const scope = await tx.scope.create({ data: { ...data, status: 'AI_DRAFTED' } })
     await logEvent(tx, { entityType: 'Scope', entityId: scope.id, action: 'create', actorId, actorRole: 'admin' })
     return scope
@@ -44,7 +45,7 @@ export async function approveScope(scopeId: string, actorId: string) {
   const allowed = SCOPE_TRANSITIONS[scope.status]
   if (!allowed.includes('ADMIN_APPROVED')) throw new Error(`Invalid transition: ${scope.status} → ADMIN_APPROVED`)
 
-  await db.$transaction(async (tx) => {
+  await db.$transaction(async (tx: Tx) => {
     await tx.scope.update({ where: { id: scopeId }, data: { status: 'ADMIN_APPROVED' } })
     await logEvent(tx, { entityType: 'Scope', entityId: scopeId, action: 'approve', actorId, actorRole: 'admin' })
   })

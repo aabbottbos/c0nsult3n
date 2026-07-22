@@ -1,6 +1,9 @@
 import { PrismaClient } from '../app/generated/prisma'
+import { PrismaNeon } from '@prisma/adapter-neon'
+import 'dotenv/config'
 
-const db = new PrismaClient()
+const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! })
+const db = new PrismaClient({ adapter })
 
 async function main() {
   // Admin user

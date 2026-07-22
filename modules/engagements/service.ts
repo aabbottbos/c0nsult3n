@@ -1,11 +1,12 @@
 import { db } from '@/lib/db'
+import type { Tx } from '@/lib/db'
 import { logEvent } from '@/modules/audit-events/service'
 import { markEngagementCreated, closeProject } from '@/modules/projects/service'
 import type { Role, EngagementStatus } from '@/app/generated/prisma'
 import { ENGAGEMENT_TRANSITIONS } from './types'
 
 async function transition(engagementId: string, to: EngagementStatus, action: string, actorId: string, actorRole: Role) {
-  return db.$transaction(async (tx) => {
+  return db.$transaction(async (tx: Tx) => {
     const eng = await tx.engagement.findUniqueOrThrow({ where: { id: engagementId } })
     if (!ENGAGEMENT_TRANSITIONS[eng.status].includes(to)) throw new Error(`Invalid transition: ${eng.status} → ${to}`)
     const updated = await tx.engagement.update({ where: { id: engagementId }, data: { status: to } })
@@ -18,7 +19,7 @@ export async function createEngagement(
   data: { projectId: string; scopeId: string; proposalId: string; consultantId: string; clientId: string },
   actorId: string
 ) {
-  const engagement = await db.$transaction(async (tx) => {
+  const engagement = await db.$transaction(async (tx: Tx) => {
     const eng = await tx.engagement.create({ data })
     await logEvent(tx, { entityType: 'Engagement', entityId: eng.id, action: 'create', actorId, actorRole: 'admin' })
     return eng
@@ -51,7 +52,7 @@ export async function closeEngagement(engagementId: string, actorId: string) {
   const eng = await db.engagement.findUniqueOrThrow({ where: { id: engagementId } })
   if (!ENGAGEMENT_TRANSITIONS[eng.status].includes('CLOSED')) throw new Error(`Invalid transition: ${eng.status} → CLOSED`)
 
-  await db.$transaction(async (tx) => {
+  await db.$transaction(async (tx: Tx) => {
     await tx.engagement.update({ where: { id: engagementId }, data: { status: 'CLOSED' } })
     await logEvent(tx, { entityType: 'Engagement', entityId: engagementId, action: 'close', actorId, actorRole: 'admin' })
   })

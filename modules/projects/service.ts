@@ -1,10 +1,11 @@
 import { db } from '@/lib/db'
+import type { Tx } from '@/lib/db'
 import { logEvent } from '@/modules/audit-events/service'
 import type { Role, ProjectStatus } from '@/app/generated/prisma'
 import { PROJECT_TRANSITIONS } from './types'
 
 async function transition(projectId: string, to: ProjectStatus, action: string, actorId: string, actorRole: Role) {
-  return db.$transaction(async (tx) => {
+  return db.$transaction(async (tx: Tx) => {
     const project = await tx.project.findUniqueOrThrow({ where: { id: projectId } })
     const allowed = PROJECT_TRANSITIONS[project.status]
     if (!allowed.includes(to)) throw new Error(`Invalid transition: ${project.status} → ${to}`)
@@ -18,7 +19,7 @@ export async function createProject(
   data: { clientId: string; title: string; description: string },
   actorId: string
 ) {
-  return db.$transaction(async (tx) => {
+  return db.$transaction(async (tx: Tx) => {
     const project = await tx.project.create({ data })
     await logEvent(tx, { entityType: 'Project', entityId: project.id, action: 'create', actorId, actorRole: 'admin' })
     return project
