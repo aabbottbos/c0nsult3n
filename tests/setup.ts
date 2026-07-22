@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { PrismaClient } from '../app/generated/prisma'
 import { PrismaNeon } from '@prisma/adapter-neon'
 import { afterEach } from 'vitest'
