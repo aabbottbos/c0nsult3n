@@ -11,30 +11,42 @@ matrix, state machines) lives in `.claude/skills/`. Load the relevant skill when
 you need it — do not inline that knowledge here.
 
 ## Stack
-<!-- PROPOSED in SPEC.md §4. Confirm/lock at Gate 0, then fill in and delete this note. -->
-- Web framework: `TBD`
-- Relational DB: `TBD` (Postgres proposed)
-- Auth: `TBD`
-- Transactional email: `TBD`
-- File storage: `TBD` (S3-compatible)
-- AI provider: `TBD` (Anthropic API proposed)
-- Payments: `TBD` (Stripe proposed)
-- Error monitoring: `TBD` (Sentry proposed)
+- Web framework: Next.js 16 (App Router)
+- Relational DB: Neon (serverless Postgres) — connection string in `.env` as `DATABASE_URL`
+- ORM: Prisma 7 with `@prisma/adapter-neon` (`PrismaNeon` adapter); generates to `app/generated/prisma/`
+- Auth: Clerk (`@clerk/nextjs` v7) — roles stored in `sessionClaims.metadata.role` as lowercase `admin` | `client` | `consultant`
+- Transactional email: TBD (MVP B)
+- File storage: TBD (MVP B)
+- AI provider: TBD (MVP B)
+- Payments: TBD (MVP B)
+- Error monitoring: Sentry (`@sentry/nextjs` v10) — DSN in `.env.local`
 
 ## Commands
-<!-- Fill these in once the repo is scaffolded. Include only commands you can't guess. -->
-- Install: `TBD`
-- Run dev: `TBD`
-- Test (all): `TBD` — prefer a single test file during a change: `TBD`
-- Lint / typecheck: `TBD`
-- DB migrate / seed: `TBD`
+- Install: `npm install`
+- Run dev: `npm run dev`
+- Test (all): `npm test` (= `vitest run`) — integration tests hit the real Neon dev DB
+- Test (single file): `npx vitest run tests/<file>.test.ts`
+- Typecheck: `npm run typecheck` (= `tsc --noEmit`)
+- Lint: `npm run lint`
+- DB migrate: `npx prisma migrate dev`
+- DB seed: `npx prisma db seed` (runs `prisma/seed.ts` via tsx)
+- DB generate: `npx prisma generate` (re-generates client to `app/generated/prisma/`)
 
 ## Architecture
 - One application, one primary relational DB. Organize code by business-domain
   **module** (see `SPEC.md §5`). Keep boundaries clean: a module reaches another
   module through its service layer, never by reaching into its tables.
+- Modules live in `modules/<name>/service.ts` (business logic) and `modules/<name>/types.ts`
+  (state machine transition maps + exported types). The DB client (`lib/db.ts`) is a Prisma
+  singleton imported only in service files and admin detail pages (for event log reads).
 - Users never set a raw status. Users take **actions**; the system records the
   resulting state change. State machines are defined in the `state-machine` skill.
+  Transition maps are in each module's `types.ts` as `<MODULE>_TRANSITIONS`.
+- Admin pages (`app/(admin)/`) are Server Components. All mutations go through Server
+  Actions in `actions.ts` files that call service functions then redirect. The admin
+  layout (`app/(admin)/layout.tsx`) calls `requireRole('admin')` — individual pages
+  need no additional auth check, but **every `actions.ts` must also call `requireRole('admin')`**
+  (layout guards do not protect direct action invocations).
 - The payment provider is the source of truth for payment events. The product
   may mirror payment status but must never independently decide a payment succeeded.
 
@@ -65,9 +77,28 @@ you need it — do not inline that knowledge here.
   (`SPEC.md §9`), do NOT build it — flag it as MVP B and move on.
 - Branch naming: `m<milestone>/<module>-<short-desc>` (e.g. `m1/matching-eligibility-filter`).
   Small PRs, one module concern each. Commit at each working slice.
+- **GitHub push:** This repo lives at `Personal/Consulten/build/` inside a parent git repo.
+  Push via subtree: `cd /Users/andrewabbott/Development && git subtree push --prefix=Personal/Consulten/build consulten main`
+  The remote alias is `consulten` → `https://github.com/aabbottbos/c0nsult3n.git`.
 
 ## Gotchas
-<!-- Add real, non-obvious ones as you hit them. Delete anything Claude already gets right. -->
+- **Vitest does not auto-load `.env`.** The test setup file (`tests/setup.ts`) imports
+  `dotenv/config` explicitly — do not remove it or tests lose the `DATABASE_URL`.
+- **Integration tests share one real Neon DB** and must run sequentially.
+  `fileParallelism: false` in `vitest.config.ts` is required — do not change it.
+  `testTimeout` is 60 000 ms; the spine test takes ~30 s against Neon.
+- **Prisma generates to `app/generated/prisma/`**, not the default location.
+  Import from `@/app/generated/prisma`, not `@prisma/client`.
+- **Prisma 7 adapter:** Use `PrismaNeon({ connectionString })` from `@prisma/adapter-neon`.
+  Do not pass `neon()` (the query function) — pass the options object directly.
+- **Next.js 15+ dynamic params are async.** Detail pages must type params as
+  `Promise<{ id: string }>` and `await params` before use.
+- **Decimal fields:** Prisma returns `fee` as a `Decimal` object, not a number.
+  Call `.toString()` before rendering in JSX.
+- **Role enum values are lowercase:** `admin`, `client`, `consultant` (not `ADMIN` etc.).
+  All `requireRole()` calls must use the lowercase string.
+- **`scope.assumptions` and `scope.exclusions` are nullable** in the schema.
+  Render with `?? ''` or conditional display to avoid TypeScript errors.
 
 # Coding guidelines
 
