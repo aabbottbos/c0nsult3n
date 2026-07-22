@@ -1,8 +1,39 @@
-export default function DashboardPage() {
+import { db } from '@/lib/db'
+
+export default async function DashboardPage() {
+  const [projects, scopes, shortlists, invitations, proposals, engagements, clients, consultants] = await Promise.all([
+    db.project.count(),
+    db.scope.count(),
+    db.shortlist.count(),
+    db.consultantInvitation.count(),
+    db.proposal.count(),
+    db.engagement.count(),
+    db.clientOrganization.count(),
+    db.consultantProfile.count(),
+  ])
+
+  const stats = [
+    { label: 'Projects', count: projects, href: '/admin/projects' },
+    { label: 'Scopes', count: scopes, href: '/admin/scopes' },
+    { label: 'Shortlists', count: shortlists, href: '/admin/shortlists' },
+    { label: 'Invitations', count: invitations, href: '/admin/invitations' },
+    { label: 'Proposals', count: proposals, href: '/admin/proposals' },
+    { label: 'Engagements', count: engagements, href: '/admin/engagements' },
+    { label: 'Clients', count: clients, href: '/admin/clients' },
+    { label: 'Consultants', count: consultants, href: '/admin/consultants' },
+  ]
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-slate-900 mb-2">Dashboard</h1>
-      <p className="text-slate-500">M1 admin shell — module pages coming in Plan B.</p>
+    <div className="p-8 space-y-6">
+      <h1 className="text-xl font-semibold text-slate-900">Dashboard</h1>
+      <div className="grid grid-cols-4 gap-4">
+        {stats.map(s => (
+          <a key={s.label} href={s.href} className="bg-white rounded-lg border border-slate-200 p-5 hover:border-indigo-300 transition-colors">
+            <div className="text-3xl font-bold text-slate-900">{s.count}</div>
+            <div className="text-sm text-slate-500 mt-1">{s.label}</div>
+          </a>
+        ))}
+      </div>
     </div>
   )
 }
