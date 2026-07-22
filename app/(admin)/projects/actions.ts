@@ -1,6 +1,7 @@
 'use server'
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { requireRole } from '@/lib/auth'
 import {
   submitProject,
   startAdminReview,
@@ -11,8 +12,10 @@ import {
 } from '@/modules/projects/service'
 
 async function actorId() {
+  await requireRole('admin')
   const { userId } = await auth()
-  return userId!
+  if (!userId) redirect('/sign-in')
+  return userId
 }
 
 export async function submitProjectAction(id: string) {
