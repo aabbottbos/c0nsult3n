@@ -23,7 +23,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <a href="/admin/consultants" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Consultants</a>
           <p className="px-3 pt-3 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-widest">System</p>
           <a href="/admin/events" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Event Log</a>
-          <a href="/admin/ai-outputs" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">AI Output Log</a>
         </nav>
       </aside>
       <main className="flex-1 flex flex-col overflow-hidden">{children}</main>
