@@ -108,6 +108,12 @@ enum DeliverableStatus {
   REVISION_REQUESTED
 }
 
+enum RevisionRequestStatus {
+  OPEN
+  ADDRESSED
+  WITHDRAWN
+}
+
 // ─── Auth & People ──────────────────────────────────────────────────────────
 
 model User {
@@ -278,11 +284,12 @@ model Engagement {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
-  project      Project           @relation(fields: [projectId], references: [id])
-  scope        Scope             @relation(fields: [scopeId], references: [id])
-  proposal     Proposal          @relation(fields: [proposalId], references: [id])
-  consultant   ConsultantProfile @relation(fields: [consultantId], references: [id])
-  deliverables Deliverable[]
+  project          Project           @relation(fields: [projectId], references: [id])
+  scope            Scope             @relation(fields: [scopeId], references: [id])
+  proposal         Proposal          @relation(fields: [proposalId], references: [id])
+  consultant       ConsultantProfile @relation(fields: [consultantId], references: [id])
+  deliverables     Deliverable[]
+  revisionRequests RevisionRequest[]
 }
 
 model Deliverable {
@@ -294,7 +301,22 @@ model Deliverable {
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 
-  engagement Engagement @relation(fields: [engagementId], references: [id])
+  engagement       Engagement      @relation(fields: [engagementId], references: [id])
+  revisionRequests RevisionRequest[]
+}
+
+model RevisionRequest {
+  id           String                @id @default(cuid())
+  engagementId String
+  deliverableId String
+  requestedBy  String
+  reason       String
+  status       RevisionRequestStatus @default(OPEN)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  engagement  Engagement  @relation(fields: [engagementId], references: [id])
+  deliverable Deliverable @relation(fields: [deliverableId], references: [id])
 }
 
 // ─── Cross-cutting ──────────────────────────────────────────────────────────
