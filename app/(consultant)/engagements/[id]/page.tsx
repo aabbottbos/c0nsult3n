@@ -44,14 +44,14 @@ export default async function ConsultantEngagementDetailPage({ params }: { param
       {canSubmit && (
         <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-4">
           <h2 className="text-sm font-semibold text-slate-700">Submit Deliverable</h2>
-          <form action={submitDeliverableAction.bind(null, engagement.id)} className="space-y-4">
+          <form action={submitDeliverableAction.bind(null, engagement.id)} encType="multipart/form-data" className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">File URL or link</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Deliverable file</label>
               <input
-                name="fileUrl"
-                type="url"
-                placeholder="https://docs.google.com/... or https://drive.google.com/..."
-                className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                name="file"
+                type="file"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip"
+                className="w-full text-sm text-slate-700 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
               />
             </div>
             <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">Submit</button>

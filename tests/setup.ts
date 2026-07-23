@@ -8,7 +8,9 @@ const prisma = new PrismaClient({ adapter })
 
 afterEach(async () => {
   // Delete in reverse FK dependency order
+  await prisma.revisionRequest.deleteMany()
   await prisma.deliverable.deleteMany()
+  await prisma.engagementCommunication.deleteMany()
   await prisma.engagement.deleteMany()
   await prisma.proposal.deleteMany()
   await prisma.consultantInvitation.deleteMany()
