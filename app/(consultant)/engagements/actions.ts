@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { submitDeliverable } from '@/modules/engagements/service'
 import { logEvent } from '@/modules/audit-events/service'
 import { sendDeliverableSubmittedEmail } from '@/lib/email'
+import { put } from '@vercel/blob'
 
 async function consultantProfileId() {
   await requireRole('consultant')
@@ -18,11 +19,17 @@ async function consultantProfileId() {
 
 export async function submitDeliverableAction(engagementId: string, formData: FormData) {
   const profileId = await consultantProfileId()
-  const fileUrl = formData.get('fileUrl') as string
+  const file = formData.get('file') as File | null
+
+  let fileUrl: string | null = null
+  if (file && file.size > 0) {
+    const blob = await put(file.name, file, { access: 'public' })
+    fileUrl = blob.url
+  }
 
   await db.$transaction(async (tx) => {
     const d = await tx.deliverable.create({
-      data: { engagementId, status: 'SUBMITTED', submittedAt: new Date(), fileUrl: fileUrl || null },
+      data: { engagementId, status: 'SUBMITTED', submittedAt: new Date(), fileUrl },
     })
     await logEvent(tx, { entityType: 'Deliverable', entityId: d.id, action: 'create', actorId: profileId, actorRole: 'consultant' })
   })
