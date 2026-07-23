@@ -32,13 +32,13 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "svix": "^1.98.0",
-    "tailwindcss": "^4.3.3",
-    "typescript": "^7.0.2"
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.0.4",
     "dotenv": "^17.4.2",
     "prisma": "^7.9.0",
+    "typescript": "5.9.3",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10"
   }
