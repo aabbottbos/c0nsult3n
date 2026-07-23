@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
 import { db } from '@/lib/db'
-import { acceptDeliverableAction, requestRevisionAction } from '../../../../actions'
+import { acceptDeliverableAction, requestRevisionAction } from '../../../actions'
 
 export default async function ClientEngagementDetailPage({ params }: { params: Promise<{ id: string; engagementId: string }> }) {
   const { engagementId } = await params
