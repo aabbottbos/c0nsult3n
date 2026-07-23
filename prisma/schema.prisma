@@ -234,6 +234,7 @@ model ShortlistCandidate {
   shortlistId  String
   consultantId String
   addedBy      String
+  rationale    String?
   createdAt    DateTime @default(now())
 
   shortlist   Shortlist         @relation(fields: [shortlistId], references: [id])
