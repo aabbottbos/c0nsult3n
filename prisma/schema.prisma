@@ -330,6 +330,8 @@ model EngagementCommunication {
   createdAt    DateTime @default(now())
 
   engagement Engagement @relation(fields: [engagementId], references: [id])
+
+  @@index([engagementId])
 }
 
 // ─── Cross-cutting ──────────────────────────────────────────────────────────
