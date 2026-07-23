@@ -11,6 +11,7 @@ import { createProposal, selectProposal } from '@/modules/proposals/service'
 import { createEngagement, startEngagement, submitDeliverable, beginReview, acceptEngagement, closeEngagement } from '@/modules/engagements/service'
 import { createDeliverable } from '@/modules/deliverables/service'
 
+
 describe('M1 spine: full path intake → closeout', () => {
   it('walks the complete happy path and records every state transition', async () => {
     // ── Step 1: Users ──────────────────────────────────────────────────────
@@ -139,5 +140,84 @@ describe('M1 spine: full path intake → closeout', () => {
     expect(actions).toContain('create')
     expect(actions).toContain('submit')
     expect(actions).toContain('close')
+  })
+})
+
+describe('M2 portal permission invariants', () => {
+  it('client can only see their own organization projects', async () => {
+    const admin = await upsertUser({ clerkId: 'm2_admin', email: 'admin@m2.test', role: 'admin' })
+    const clientUserA = await upsertUser({ clerkId: 'm2_client_a', email: 'a@m2.test', role: 'client' })
+    const clientUserB = await upsertUser({ clerkId: 'm2_client_b', email: 'b@m2.test', role: 'client' })
+
+    const orgA = await createOrganization({ name: 'Org A' }, admin.id)
+    const orgB = await createOrganization({ name: 'Org B' }, admin.id)
+    await createContact({ userId: clientUserA.id, organizationId: orgA.id, name: 'A', email: 'a@m2.test' }, admin.id)
+    await createContact({ userId: clientUserB.id, organizationId: orgB.id, name: 'B', email: 'b@m2.test' }, admin.id)
+
+    const projectA = await createProject({ clientId: orgA.id, title: 'Project A', description: 'A' }, admin.id)
+    const projectB = await createProject({ clientId: orgB.id, title: 'Project B', description: 'B' }, admin.id)
+
+    const contactA = await prisma.clientContact.findUniqueOrThrow({ where: { userId: clientUserA.id } })
+    const projectsForA = await prisma.project.findMany({ where: { clientId: contactA.organizationId } })
+    expect(projectsForA.map(p => p.id)).toContain(projectA.id)
+    expect(projectsForA.map(p => p.id)).not.toContain(projectB.id)
+  })
+
+  it('consultant can only see their own invitations', async () => {
+    const admin = await upsertUser({ clerkId: 'm2_inv_admin', email: 'admin@m2inv.test', role: 'admin' })
+    const consultantUserA = await upsertUser({ clerkId: 'm2_cons_a', email: 'cons_a@m2.test', role: 'consultant' })
+    const consultantUserB = await upsertUser({ clerkId: 'm2_cons_b', email: 'cons_b@m2.test', role: 'consultant' })
+
+    const profileA = await createProfile({ userId: consultantUserA.id }, admin.id)
+    const profileB = await createProfile({ userId: consultantUserB.id }, admin.id)
+
+    const org = await createOrganization({ name: 'Test Org M2' }, admin.id)
+    const project = await createProject({ clientId: org.id, title: 'Test Project M2', description: 'desc' }, admin.id)
+    await submitProject(project.id, admin.id)
+
+    const shortlist = await prisma.shortlist.create({ data: { projectId: project.id } })
+    const candidateA = await prisma.shortlistCandidate.create({ data: { shortlistId: shortlist.id, consultantId: profileA.id, addedBy: admin.id } })
+
+    const invitationA = await prisma.consultantInvitation.create({
+      data: { shortlistCandidateId: candidateA.id, projectId: project.id, consultantId: profileA.id, status: 'SENT' },
+    })
+
+    const invForA = await prisma.consultantInvitation.findMany({
+      where: { consultantId: profileA.id, status: { in: ['SENT', 'VIEWED', 'QUESTIONS_ASKED'] } },
+    })
+    expect(invForA.map(i => i.id)).toContain(invitationA.id)
+
+    const invForB = await prisma.consultantInvitation.findMany({
+      where: { consultantId: profileB.id, status: { in: ['SENT', 'VIEWED', 'QUESTIONS_ASKED'] } },
+    })
+    expect(invForB.map(i => i.id)).not.toContain(invitationA.id)
+  })
+
+  it('webhook: user.created with role client creates org + contact records', async () => {
+    const clerkId = 'm2_wh_client'
+    const email = 'webhook_client@m2.test'
+    const role = 'client' as const
+
+    const user = await upsertUser({ clerkId, email, role })
+    const domain = email.split('@')[1]!
+    const org = await createOrganization({ name: domain }, user.id)
+    await createContact({ userId: user.id, organizationId: org.id, name: email.split('@')[0]!, email }, user.id)
+
+    const contact = await prisma.clientContact.findUnique({ where: { userId: user.id } })
+    expect(contact).not.toBeNull()
+    expect(contact!.organizationId).toBe(org.id)
+  })
+
+  it('webhook: user.created with role consultant creates profile record', async () => {
+    const clerkId = 'm2_wh_consultant'
+    const email = 'webhook_consultant@m2.test'
+    const role = 'consultant' as const
+
+    const user = await upsertUser({ clerkId, email, role })
+    const profile = await createProfile({ userId: user.id }, user.id)
+
+    const found = await prisma.consultantProfile.findUnique({ where: { userId: user.id } })
+    expect(found).not.toBeNull()
+    expect(found!.approvalStatus).toBe('pending')
   })
 })
