@@ -46,8 +46,9 @@ export default async function ConsultantEngagementDetailPage({ params }: { param
           <h2 className="text-sm font-semibold text-slate-700">Submit Deliverable</h2>
           <form action={submitDeliverableAction.bind(null, engagement.id)} encType="multipart/form-data" className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Deliverable file</label>
+              <label htmlFor="file-input" className="block text-sm font-medium text-slate-700 mb-1">Deliverable file</label>
               <input
+                id="file-input"
                 name="file"
                 type="file"
                 accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip"
