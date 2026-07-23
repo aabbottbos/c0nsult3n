@@ -22,10 +22,10 @@ export default async function DeliverablesPage() {
             {deliverables.map(d => (
               <tr key={d.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3 text-sm">
-                  <a href={`/admin/deliverables/${d.id}`} className="text-indigo-600 hover:underline font-mono text-xs">{d.id.slice(0, 12)}…</a>
+                  <a href={`/deliverables/${d.id}`} className="text-indigo-600 hover:underline font-mono text-xs">{d.id.slice(0, 12)}…</a>
                 </td>
                 <td className="px-4 py-3 text-sm">
-                  <a href={`/admin/engagements/${d.engagementId}`} className="text-indigo-600 hover:underline">{d.engagementId.slice(0, 12)}…</a>
+                  <a href={`/engagements/${d.engagementId}`} className="text-indigo-600 hover:underline">{d.engagementId.slice(0, 12)}…</a>
                 </td>
                 <td className="px-4 py-3">
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">{d.status}</span>

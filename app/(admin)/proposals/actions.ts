@@ -13,5 +13,5 @@ async function actorId() {
 
 export async function selectProposalAction(id: string) {
   await selectProposal(id, await actorId())
-  redirect(`/admin/proposals/${id}`)
+  redirect(`/proposals/${id}`)
 }

@@ -11,18 +11,18 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         </div>
         <nav className="flex-1 px-2 py-2 text-sm space-y-0.5">
           <p className="px-3 pt-3 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-widest">Projects</p>
-          <a href="/admin/projects" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Projects</a>
-          <a href="/admin/scopes" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Scopes</a>
-          <a href="/admin/shortlists" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Shortlists</a>
-          <a href="/admin/invitations" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Invitations</a>
-          <a href="/admin/proposals" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Proposals</a>
-          <a href="/admin/engagements" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Engagements</a>
-          <a href="/admin/deliverables" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Deliverables</a>
+          <a href="/projects" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Projects</a>
+          <a href="/scopes" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Scopes</a>
+          <a href="/shortlists" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Shortlists</a>
+          <a href="/invitations" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Invitations</a>
+          <a href="/proposals" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Proposals</a>
+          <a href="/engagements" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Engagements</a>
+          <a href="/deliverables" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Deliverables</a>
           <p className="px-3 pt-3 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-widest">People</p>
-          <a href="/admin/clients" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Clients</a>
-          <a href="/admin/consultants" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Consultants</a>
+          <a href="/clients" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Clients</a>
+          <a href="/consultants" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Consultants</a>
           <p className="px-3 pt-3 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-widest">System</p>
-          <a href="/admin/events" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Event Log</a>
+          <a href="/events" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Event Log</a>
         </nav>
       </aside>
       <main className="flex-1 flex flex-col overflow-hidden">{children}</main>

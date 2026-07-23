@@ -14,7 +14,7 @@ export default async function InvitationDetailPage({ params }: { params: Promise
 
   return (
     <div className="p-8 space-y-6">
-      <a href="/admin/invitations" className="text-sm text-indigo-600 hover:underline">← Invitations</a>
+      <a href="/invitations" className="text-sm text-indigo-600 hover:underline">← Invitations</a>
       <div className="flex items-start justify-between">
         <h1 className="text-xl font-semibold text-slate-900">Invitation</h1>
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">{inv.status}</span>
@@ -23,8 +23,8 @@ export default async function InvitationDetailPage({ params }: { params: Promise
       <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-3">
         <h2 className="text-sm font-semibold text-slate-700">Details</h2>
         <dl className="grid grid-cols-2 gap-3 text-sm">
-          <div><dt className="text-slate-500">Project</dt><dd><a href={`/admin/projects/${inv.projectId}`} className="text-indigo-600 hover:underline">{project?.title ?? inv.projectId}</a></dd></div>
-          <div><dt className="text-slate-500">Consultant</dt><dd><a href={`/admin/consultants/${inv.consultantId}`} className="text-indigo-600 hover:underline">{inv.consultantId.slice(0, 12)}…</a></dd></div>
+          <div><dt className="text-slate-500">Project</dt><dd><a href={`/projects/${inv.projectId}`} className="text-indigo-600 hover:underline">{project?.title ?? inv.projectId}</a></dd></div>
+          <div><dt className="text-slate-500">Consultant</dt><dd><a href={`/consultants/${inv.consultantId}`} className="text-indigo-600 hover:underline">{inv.consultantId.slice(0, 12)}…</a></dd></div>
           <div><dt className="text-slate-500">Sent</dt><dd className="text-slate-900">{inv.sentAt?.toLocaleDateString() ?? '—'}</dd></div>
           <div><dt className="text-slate-500">Expires</dt><dd className="text-slate-900">{inv.expiresAt?.toLocaleDateString() ?? '—'}</dd></div>
         </dl>

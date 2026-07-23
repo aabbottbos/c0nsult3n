@@ -22,7 +22,7 @@ export default async function ShortlistsPage() {
             {shortlists.map(sl => (
               <tr key={sl.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3 text-sm">
-                  <a href={`/admin/shortlists/${sl.id}`} className="text-indigo-600 hover:underline font-medium">{sl.project.title}</a>
+                  <a href={`/shortlists/${sl.id}`} className="text-indigo-600 hover:underline font-medium">{sl.project.title}</a>
                 </td>
                 <td className="px-4 py-3">
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">{sl.status}</span>

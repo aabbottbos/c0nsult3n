@@ -18,7 +18,7 @@ export default async function EngagementsPage() {
             {engagements.map(e => (
               <tr key={e.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3 text-sm">
-                  <a href={`/admin/engagements/${e.id}`} className="text-indigo-600 hover:underline font-mono text-xs">{e.id.slice(0, 12)}…</a>
+                  <a href={`/engagements/${e.id}`} className="text-indigo-600 hover:underline font-mono text-xs">{e.id.slice(0, 12)}…</a>
                 </td>
                 <td className="px-4 py-3">
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">{e.status}</span>

@@ -15,7 +15,7 @@ export default async function EngagementDetailPage({ params }: { params: Promise
 
   return (
     <div className="p-8 space-y-6">
-      <a href="/admin/engagements" className="text-sm text-indigo-600 hover:underline">← Engagements</a>
+      <a href="/engagements" className="text-sm text-indigo-600 hover:underline">← Engagements</a>
       <div className="flex items-start justify-between">
         <h1 className="text-xl font-semibold text-slate-900">Engagement</h1>
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">{engagement.status}</span>
@@ -24,9 +24,9 @@ export default async function EngagementDetailPage({ params }: { params: Promise
       <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-3">
         <h2 className="text-sm font-semibold text-slate-700">Details</h2>
         <dl className="grid grid-cols-2 gap-3 text-sm">
-          <div><dt className="text-slate-500">Project</dt><dd><a href={`/admin/projects/${engagement.projectId}`} className="text-indigo-600 hover:underline">{project?.title ?? engagement.projectId}</a></dd></div>
-          <div><dt className="text-slate-500">Scope</dt><dd><a href={`/admin/scopes/${engagement.scopeId}`} className="text-indigo-600 hover:underline">{engagement.scopeId.slice(0, 12)}…</a></dd></div>
-          <div><dt className="text-slate-500">Proposal</dt><dd><a href={`/admin/proposals/${engagement.proposalId}`} className="text-indigo-600 hover:underline">{engagement.proposalId.slice(0, 12)}…</a></dd></div>
+          <div><dt className="text-slate-500">Project</dt><dd><a href={`/projects/${engagement.projectId}`} className="text-indigo-600 hover:underline">{project?.title ?? engagement.projectId}</a></dd></div>
+          <div><dt className="text-slate-500">Scope</dt><dd><a href={`/scopes/${engagement.scopeId}`} className="text-indigo-600 hover:underline">{engagement.scopeId.slice(0, 12)}…</a></dd></div>
+          <div><dt className="text-slate-500">Proposal</dt><dd><a href={`/proposals/${engagement.proposalId}`} className="text-indigo-600 hover:underline">{engagement.proposalId.slice(0, 12)}…</a></dd></div>
         </dl>
       </div>
 
@@ -73,7 +73,7 @@ export default async function EngagementDetailPage({ params }: { params: Promise
           <ul className="space-y-2">
             {engagement.deliverables.map(d => (
               <li key={d.id} className="text-sm text-slate-700">
-                <a href={`/admin/deliverables/${d.id}`} className="text-indigo-600 hover:underline">{d.id.slice(0, 12)}…</a>
+                <a href={`/deliverables/${d.id}`} className="text-indigo-600 hover:underline">{d.id.slice(0, 12)}…</a>
                 <span className="ml-2 text-slate-500">{d.status}</span>
               </li>
             ))}

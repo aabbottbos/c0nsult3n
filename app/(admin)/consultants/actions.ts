@@ -13,15 +13,15 @@ async function actorId() {
 
 export async function approveProfileAction(id: string) {
   await approveProfile(id, await actorId())
-  redirect(`/admin/consultants/${id}`)
+  redirect(`/consultants/${id}`)
 }
 
 export async function publishProfileAction(id: string) {
   await publishProfile(id, await actorId())
-  redirect(`/admin/consultants/${id}`)
+  redirect(`/consultants/${id}`)
 }
 
 export async function suspendProfileAction(id: string) {
   await suspendProfile(id, await actorId())
-  redirect(`/admin/consultants/${id}`)
+  redirect(`/consultants/${id}`)
 }

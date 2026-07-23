@@ -15,7 +15,7 @@ export default async function ShortlistDetailPage({ params }: { params: Promise<
 
   return (
     <div className="p-8 space-y-6">
-      <a href="/admin/shortlists" className="text-sm text-indigo-600 hover:underline">← Shortlists</a>
+      <a href="/shortlists" className="text-sm text-indigo-600 hover:underline">← Shortlists</a>
       <div className="flex items-start justify-between">
         <h1 className="text-xl font-semibold text-slate-900">Shortlist — {project?.title ?? shortlist.projectId}</h1>
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">{shortlist.status}</span>
@@ -27,7 +27,7 @@ export default async function ShortlistDetailPage({ params }: { params: Promise<
           <ul className="space-y-2">
             {shortlist.candidates.map(c => (
               <li key={c.id} className="text-sm text-slate-700">
-                <a href={`/admin/consultants/${c.consultantId}`} className="text-indigo-600 hover:underline">{c.consultantId}</a>
+                <a href={`/consultants/${c.consultantId}`} className="text-indigo-600 hover:underline">{c.consultantId}</a>
               </li>
             ))}
           </ul>

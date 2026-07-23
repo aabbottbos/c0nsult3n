@@ -17,7 +17,7 @@ export default async function ClientsPage() {
             {orgs.map(org => (
               <tr key={org.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3 text-sm">
-                  <a href={`/admin/clients/${org.id}`} className="text-indigo-600 hover:underline font-medium">{org.name}</a>
+                  <a href={`/clients/${org.id}`} className="text-indigo-600 hover:underline font-medium">{org.name}</a>
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-500">{org.createdAt.toLocaleDateString()}</td>
               </tr>

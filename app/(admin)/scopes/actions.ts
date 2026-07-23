@@ -13,25 +13,25 @@ async function actorId() {
 
 export async function moveToAdminReviewAction(id: string) {
   await moveToAdminReview(id, await actorId())
-  redirect(`/admin/scopes/${id}`)
+  redirect(`/scopes/${id}`)
 }
 
 export async function approveScopeAction(id: string) {
   await approveScope(id, await actorId())
-  redirect(`/admin/scopes/${id}`)
+  redirect(`/scopes/${id}`)
 }
 
 export async function requestClientChangesAction(id: string) {
   await requestClientChanges(id, await actorId())
-  redirect(`/admin/scopes/${id}`)
+  redirect(`/scopes/${id}`)
 }
 
 export async function confirmScopeAction(id: string) {
   await confirmScope(id, await actorId())
-  redirect(`/admin/scopes/${id}`)
+  redirect(`/scopes/${id}`)
 }
 
 export async function rejectScopeAction(id: string) {
   await rejectScope(id, await actorId())
-  redirect(`/admin/scopes/${id}`)
+  redirect(`/scopes/${id}`)
 }

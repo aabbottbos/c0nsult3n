@@ -12,7 +12,7 @@ export default async function ConsultantDetailPage({ params }: { params: Promise
 
   return (
     <div className="p-8 space-y-6">
-      <a href="/admin/consultants" className="text-sm text-indigo-600 hover:underline">← Consultants</a>
+      <a href="/consultants" className="text-sm text-indigo-600 hover:underline">← Consultants</a>
       <div className="flex items-start justify-between">
         <h1 className="text-xl font-semibold text-slate-900">Consultant Profile</h1>
         <div className="flex gap-2">

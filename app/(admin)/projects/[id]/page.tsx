@@ -26,7 +26,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="p-8 space-y-6">
-      <a href="/admin/projects" className="text-sm text-indigo-600 hover:underline">← Projects</a>
+      <a href="/projects" className="text-sm text-indigo-600 hover:underline">← Projects</a>
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">{project.title}</h1>
@@ -84,7 +84,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       {project.scope && (
         <div className="bg-white rounded-lg border border-slate-200 p-6">
           <h2 className="text-sm font-semibold text-slate-700 mb-2">Scope</h2>
-          <a href={`/admin/scopes/${project.scope.id}`} className="text-sm text-indigo-600 hover:underline">
+          <a href={`/scopes/${project.scope.id}`} className="text-sm text-indigo-600 hover:underline">
             {project.scope.deliverable} · <span className="text-slate-500">{project.scope.status}</span>
           </a>
         </div>

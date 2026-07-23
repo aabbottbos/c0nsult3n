@@ -13,15 +13,15 @@ async function actorId() {
 
 export async function submitForAdminReviewAction(id: string) {
   await submitForAdminReview(id, await actorId())
-  redirect(`/admin/shortlists/${id}`)
+  redirect(`/shortlists/${id}`)
 }
 
 export async function makeClientVisibleAction(id: string) {
   await makeClientVisible(id, await actorId())
-  redirect(`/admin/shortlists/${id}`)
+  redirect(`/shortlists/${id}`)
 }
 
 export async function closeShortlistAction(id: string) {
   await closeShortlist(id, await actorId())
-  redirect(`/admin/shortlists/${id}`)
+  redirect(`/shortlists/${id}`)
 }

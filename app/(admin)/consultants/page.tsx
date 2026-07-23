@@ -19,7 +19,7 @@ export default async function ConsultantsPage() {
             {profiles.map(p => (
               <tr key={p.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3 text-sm">
-                  <a href={`/admin/consultants/${p.id}`} className="text-indigo-600 hover:underline font-mono text-xs">{p.id.slice(0, 12)}…</a>
+                  <a href={`/consultants/${p.id}`} className="text-indigo-600 hover:underline font-mono text-xs">{p.id.slice(0, 12)}…</a>
                 </td>
                 <td className="px-4 py-3">
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">{p.approvalStatus}</span>

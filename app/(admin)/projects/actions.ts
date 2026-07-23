@@ -20,30 +20,30 @@ async function actorId() {
 
 export async function submitProjectAction(id: string) {
   await submitProject(id, await actorId())
-  redirect(`/admin/projects/${id}`)
+  redirect(`/projects/${id}`)
 }
 
 export async function startAdminReviewAction(id: string) {
   await startAdminReview(id, await actorId())
-  redirect(`/admin/projects/${id}`)
+  redirect(`/projects/${id}`)
 }
 
 export async function markNeedsClarificationAction(id: string) {
   await markNeedsClarification(id, await actorId())
-  redirect(`/admin/projects/${id}`)
+  redirect(`/projects/${id}`)
 }
 
 export async function markReadyForMatchingAction(id: string) {
   await markReadyForMatching(id, await actorId())
-  redirect(`/admin/projects/${id}`)
+  redirect(`/projects/${id}`)
 }
 
 export async function markMatchingInProgressAction(id: string) {
   await markMatchingInProgress(id, await actorId())
-  redirect(`/admin/projects/${id}`)
+  redirect(`/projects/${id}`)
 }
 
 export async function cancelProjectAction(id: string) {
   await cancelProject(id, await actorId())
-  redirect(`/admin/projects/${id}`)
+  redirect(`/projects/${id}`)
 }

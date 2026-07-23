@@ -19,7 +19,7 @@ export default async function ProjectsPage() {
             {projects.map(p => (
               <tr key={p.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3 text-sm">
-                  <a href={`/admin/projects/${p.id}`} className="text-indigo-600 hover:underline font-medium">{p.title}</a>
+                  <a href={`/projects/${p.id}`} className="text-indigo-600 hover:underline font-medium">{p.title}</a>
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-600">{p.client.name}</td>
                 <td className="px-4 py-3">

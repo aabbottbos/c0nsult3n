@@ -15,7 +15,7 @@ export default async function ScopeDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="p-8 space-y-6">
-      <a href="/admin/scopes" className="text-sm text-indigo-600 hover:underline">← Scopes</a>
+      <a href="/scopes" className="text-sm text-indigo-600 hover:underline">← Scopes</a>
       <div className="flex items-start justify-between">
         <h1 className="text-xl font-semibold text-slate-900">{scope.deliverable}</h1>
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">{scope.status}</span>
@@ -24,7 +24,7 @@ export default async function ScopeDetailPage({ params }: { params: Promise<{ id
       <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-3">
         <h2 className="text-sm font-semibold text-slate-700">Details</h2>
         <dl className="grid grid-cols-2 gap-3 text-sm">
-          <div><dt className="text-slate-500">Project</dt><dd><a href={`/admin/projects/${scope.projectId}`} className="text-indigo-600 hover:underline">{project?.title ?? scope.projectId}</a></dd></div>
+          <div><dt className="text-slate-500">Project</dt><dd><a href={`/projects/${scope.projectId}`} className="text-indigo-600 hover:underline">{project?.title ?? scope.projectId}</a></dd></div>
           <div><dt className="text-slate-500">Fee</dt><dd className="text-slate-900">${scope.fee.toString()}</dd></div>
           <div><dt className="text-slate-500">Effort cap</dt><dd className="text-slate-900">{scope.effortCapHours}h</dd></div>
           <div><dt className="text-slate-500">Due date</dt><dd className="text-slate-900">{scope.dueDate.toLocaleDateString()}</dd></div>
