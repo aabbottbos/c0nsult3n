@@ -1,6 +1,7 @@
 import { requireRole } from '@/lib/auth'
 import { auth } from '@clerk/nextjs/server'
 import { db } from '@/lib/db'
+import { SignOutButton } from '@/components/sign-out-button'
 import type { ReactNode } from 'react'
 
 export default async function ConsultantLayout({ children }: { children: ReactNode }) {
@@ -32,7 +33,7 @@ export default async function ConsultantLayout({ children }: { children: ReactNo
           <a href="/engagements" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Active Engagements</a>
         </nav>
         <div className="px-3 py-4 border-t border-slate-700">
-          <a href="/sign-out" className="text-xs text-slate-500 hover:text-slate-300">Sign out</a>
+          <SignOutButton />
         </div>
       </aside>
       <main className="flex-1 flex flex-col overflow-hidden">{children}</main>

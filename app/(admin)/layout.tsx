@@ -1,4 +1,5 @@
 import { requireRole } from '@/lib/auth'
+import { SignOutButton } from '@/components/sign-out-button'
 import type { ReactNode } from 'react'
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -24,6 +25,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <p className="px-3 pt-3 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-widest">System</p>
           <a href="/events" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Event Log</a>
         </nav>
+        <div className="px-3 py-4 border-t border-slate-700">
+          <SignOutButton />
+        </div>
       </aside>
       <main className="flex-1 flex flex-col overflow-hidden">{children}</main>
     </div>
