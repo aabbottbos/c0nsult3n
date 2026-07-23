@@ -27,7 +27,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="p-8 space-y-6">
-      <a href="/projects" className="text-sm text-indigo-600 hover:underline">← Projects</a>
+      <a href="/admin/projects" className="text-sm text-indigo-600 hover:underline">← Projects</a>
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">{project.title}</h1>

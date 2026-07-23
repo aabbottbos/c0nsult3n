@@ -13,12 +13,12 @@ export default async function DashboardPage() {
   ])
 
   const stats = [
-    { label: 'Projects', count: projects, href: '/projects' },
+    { label: 'Projects', count: projects, href: '/admin/projects' },
     { label: 'Scopes', count: scopes, href: '/scopes' },
     { label: 'Shortlists', count: shortlists, href: '/shortlists' },
-    { label: 'Invitations', count: invitations, href: '/invitations' },
+    { label: 'Invitations', count: invitations, href: '/admin/invitations' },
     { label: 'Proposals', count: proposals, href: '/proposals' },
-    { label: 'Engagements', count: engagements, href: '/engagements' },
+    { label: 'Engagements', count: engagements, href: '/admin/engagements' },
     { label: 'Clients', count: clients, href: '/clients' },
     { label: 'Consultants', count: consultants, href: '/consultants' },
   ]

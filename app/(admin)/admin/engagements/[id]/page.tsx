@@ -15,7 +15,7 @@ export default async function EngagementDetailPage({ params }: { params: Promise
 
   return (
     <div className="p-8 space-y-6">
-      <a href="/engagements" className="text-sm text-indigo-600 hover:underline">← Engagements</a>
+      <a href="/admin/engagements" className="text-sm text-indigo-600 hover:underline">← Engagements</a>
       <div className="flex items-start justify-between">
         <h1 className="text-xl font-semibold text-slate-900">Engagement</h1>
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">{engagement.status}</span>

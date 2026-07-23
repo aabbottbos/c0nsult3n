@@ -13,20 +13,20 @@ async function actorId() {
 
 export async function sendInvitationAction(id: string) {
   await sendInvitation(id, await actorId())
-  redirect(`/invitations/${id}`)
+  redirect(`/admin/invitations/${id}`)
 }
 
 export async function acceptInterestAction(id: string) {
   await acceptInterest(id, await actorId())
-  redirect(`/invitations/${id}`)
+  redirect(`/admin/invitations/${id}`)
 }
 
 export async function declineInvitationAction(id: string) {
   await declineInvitation(id, await actorId())
-  redirect(`/invitations/${id}`)
+  redirect(`/admin/invitations/${id}`)
 }
 
 export async function expireInvitationAction(id: string) {
   await expireInvitation(id, await actorId())
-  redirect(`/invitations/${id}`)
+  redirect(`/admin/invitations/${id}`)
 }
