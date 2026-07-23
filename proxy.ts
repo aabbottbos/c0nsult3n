@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import type { Role } from '@/app/generated/prisma'
 
 export default clerkMiddleware(async (auth, req) => {
-  const publicPaths = ['/sign-in', '/sign-up', '/debug', '/api/webhooks']
+  const publicPaths = ['/sign-in', '/sign-up', '/api/webhooks']
   const isPublic = publicPaths.some(p => req.nextUrl.pathname.startsWith(p))
   if (isPublic) return NextResponse.next()
 
