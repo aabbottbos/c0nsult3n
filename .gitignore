@@ -28,8 +28,7 @@ prisma/*.db-journal
 *.tsbuildinfo
 next-env.d.ts
 
-/app/generated/prisma/*
-!/app/generated/prisma/index.ts
+/app/generated/prisma/
 
 # clerk configuration (can include secrets)
 /.clerk/
