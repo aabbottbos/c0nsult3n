@@ -8,6 +8,7 @@ import {
   markReadyForMatchingAction,
   markMatchingInProgressAction,
   cancelProjectAction,
+  draftScopeWithAIAction,
 } from '../actions'
 import { PROJECT_TRANSITIONS } from '@/modules/projects/types'
 
@@ -75,6 +76,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           {allowed.includes('CANCELLED') && (
             <form action={cancelProjectAction.bind(null, id)}>
               <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-red-600 text-white hover:bg-red-700">Cancel</button>
+            </form>
+          )}
+          {project.status === 'UNDER_ADMIN_REVIEW' && !project.scope && (
+            <form action={draftScopeWithAIAction.bind(null, id)}>
+              <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-purple-600 text-white hover:bg-purple-700">Draft Scope with AI</button>
             </form>
           )}
           {allowed.length === 0 && <p className="text-sm text-slate-400">No actions available.</p>}
