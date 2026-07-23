@@ -3,6 +3,7 @@ import type { Tx } from '@/lib/db'
 import { logEvent } from '@/modules/audit-events/service'
 import type { Role, InvitationStatus } from '@/app/generated/prisma'
 import { INVITATION_TRANSITIONS } from './types'
+import { sendInvitationEmail } from '@/lib/email'
 
 async function transition(invitationId: string, to: InvitationStatus, action: string, actorId: string, actorRole: Role) {
   return db.$transaction(async (tx: Tx) => {
@@ -27,13 +28,31 @@ export async function createInvitation(
 }
 
 export async function sendInvitation(invitationId: string, actorId: string) {
-  return db.$transaction(async (tx: Tx) => {
+  const updated = await db.$transaction(async (tx: Tx) => {
     const inv = await tx.consultantInvitation.findUniqueOrThrow({ where: { id: invitationId } })
     if (!INVITATION_TRANSITIONS[inv.status].includes('SENT')) throw new Error(`Invalid transition: ${inv.status} → SENT`)
-    const updated = await tx.consultantInvitation.update({ where: { id: invitationId }, data: { status: 'SENT', sentAt: new Date() } })
+    const result = await tx.consultantInvitation.update({ where: { id: invitationId }, data: { status: 'SENT', sentAt: new Date() } })
     await logEvent(tx, { entityType: 'ConsultantInvitation', entityId: invitationId, action: 'send', actorId, actorRole: 'admin' })
-    return updated
+    return result
   })
+
+  // Fire email after transaction commits — failure must not roll back state
+  const inv = await db.consultantInvitation.findUniqueOrThrow({
+    where: { id: invitationId },
+    include: {
+      consultant: { include: { user: true } },
+      project: true,
+    },
+  })
+  await sendInvitationEmail({
+    consultantEmail: inv.consultant.user.email,
+    consultantName: inv.consultant.user.email,
+    projectTitle: inv.project.title,
+    invitationId: inv.id,
+    expiresAt: inv.expiresAt,
+  })
+
+  return updated
 }
 
 export async function acceptInterest(invitationId: string, actorId: string) {
