@@ -11,23 +11,42 @@ Current state of the build as of 2026-07-23. Update this file when milestone sta
 | M1 Backend (Plan A) | ✅ Complete | All 15 tasks: schema, services, state machines, auth, CI, seed, tests |
 | M1 Admin UI (Plan B) | ✅ Complete | All 11 tasks: 10 module CRUD pages + dashboard, pushed to GitHub |
 | M1 SPEC Gaps | ✅ Complete | RevisionRequest + EngagementCommunication entities, restrictions service, skill docs, decision log, scoping matrix, security-reviewer subagent |
-| M2+ | Not started | |
-
-M1 is the full spine: a founder can drive a project from creation through engagement closeout using the admin UI. No client or consultant UI exists yet.
+| M2 Portals + AI | ✅ Complete | 14 tasks: sign-up flow, webhooks, client portal, consultant portal, AI scope drafting, AI match rationale, tests |
+| M3 | Not started | Candidates: email notifications, file upload, Vercel deploy, payments |
 
 ---
 
 ## What's Working
 
-- **Admin UI** — live and verified. Login with a Clerk account that has `role: admin` in `publicMetadata`
-- **URL structure** — no `/admin/` prefix. Routes are `/dashboard`, `/projects`, `/clients`, etc. (the `(admin)` directory is a Next.js route group, not a path segment)
-- **Dashboard** shows live entity counts with links to each module
-- **All module list + detail pages** with state-machine-driven action buttons
-- **Server Actions** — clicking an action button calls the service, transitions state, logs an event, redirects
-- **Event log** — every state transition is recorded in `eventLog`; visible on each detail page and at `/events`
-- **Integration tests** — 2 test files, 5 tests, all pass against the real Neon dev DB
-- **CI** — GitHub Actions runs lint → typecheck → test → build on every push
-- **Dev server script** — `./server.sh start|stop|restart|status|logs`
+### Admin portal (`/dashboard`, `/projects`, `/clients`, etc.)
+- Full CRUD + state-machine action buttons for all 10 modules
+- Dashboard with live entity counts
+- AI scope drafting: "Draft Scope with AI" button on project detail (status `UNDER_ADMIN_REVIEW`) calls Claude, creates a Scope record, logs to `AIOutputLog`
+- AI match rationale: "Generate Match Rationale" button on shortlist detail calls Claude per-candidate, stores on `ShortlistCandidate.rationale`, logs to `AIOutputLog`
+- Event log at `/events` and on each detail page
+
+### Client portal (`/projects`, `/projects/new`, `/projects/[id]`, `/engagements/[id]`)
+- Sign up via `/sign-up` → role selector → webhook assigns role, creates org + contact
+- Sidebar lists the client's projects with stage badges and action dots
+- New project form → auto-submits on create
+- Project detail is stage-aware: shows scope for review, shortlist with rationale + proposal select, engagement card, etc.
+- Engagement detail shows scope summary, deliverable with Accept/Request Revision buttons when status is `UNDER_REVIEW`
+
+### Consultant portal (`/invitations`, `/invitations/[id]`, `/engagements`, `/engagements/[id]`)
+- Sign up via `/sign-up` → role selector → webhook assigns role, creates consultant profile
+- Sidebar shows pending invitation badge count and links to Active Engagements
+- Invitation inbox with urgency coloring (red < 5 days, amber < 10 days to expiry)
+- Invitation detail shows full scope; proposal form visible only when status is `SENT/VIEWED/QUESTIONS_ASKED`
+- Engagement detail shows scope reminder, deliverable submit form (URL input, only when `IN_PROGRESS`), submitted deliverables list
+
+### Auth + routing
+- `/sign-up` — two-step Clerk flow: credentials (email + password), then role selector (client / consultant). Uses Clerk v7 `SignUpFutureResource` API.
+- `/api/webhooks/clerk` — handles `user.created`: reads `unsafeMetadata.role`, rejects anything other than `client` or `consultant` with HTTP 400, promotes to `publicMetadata`, then creates the appropriate DB records
+- `proxy.ts` — public paths: `/sign-in`, `/sign-up`, `/api/webhooks`, `/api/clerk`. Role-based redirect at `/`: client → `/projects`, consultant → `/invitations`, admin → `/dashboard`
+
+### Tests
+- `tests/spine.test.ts` — M1 full happy-path spine (5 tests) + M2 permission invariants (4 tests): client org isolation, consultant invitation isolation, webhook role assignment for both roles
+- 9/9 tests pass against the real Neon dev DB
 
 ---
 
@@ -41,6 +60,7 @@ M1 is the full spine: a founder can drive a project from creation through engage
 | Vercel | Not yet deployed |
 | Clerk | Dev instance `cheerful-lark-30`; app ID `app_3GsuSFLVS2W9tnmFIaS797VVPyK`; webhook route at `/api/webhooks/clerk` |
 | Sentry | Configured in `sentry.*.config.ts`; DSN in `.env.local` |
+| Anthropic | `ANTHROPIC_API_KEY` in `.env.local`; model `claude-sonnet-4-6`; wrapper at `lib/ai.ts` |
 
 **Database connection string** (pooled, for app + tests):
 ```
@@ -52,40 +72,43 @@ This goes in both `.env` (for Vitest/seed) and `.env.local` (for Next.js dev).
 
 ## Clerk Setup Notes
 
-Roles are set via `publicMetadata.role` in the Clerk Dashboard. The proxy at `proxy.ts` (Next.js 16 renamed `middleware.ts` → `proxy.ts`) protects all non-public routes. Role-checking uses `requireRole(role)` from `lib/auth.ts`, which reads `sessionClaims.metadata.role`.
+Roles are set via `publicMetadata.role`. The proxy at `proxy.ts` (Next.js 16 renamed `middleware.ts` → `proxy.ts`) protects all non-public routes. Role-checking uses `requireRole(role)` from `lib/auth.ts`, which reads `sessionClaims.metadata.role`.
 
 **Required Clerk Dashboard config:**
 - Session token customization must include `"metadata": "{{user.public_metadata}}"` — without this, `sessionClaims.metadata` is absent and all role checks fail with 404.
 
-To create an admin user:
-1. Sign up at the dev Clerk instance (`/sign-in`)
+**To create an admin user** (admin accounts cannot self-register — role must be set manually):
+1. Sign up at `/sign-up` (or use Clerk Dashboard → Create user)
 2. Clerk Dashboard → Users → select user → Metadata → set `publicMetadata`: `{"role": "admin"}`
-3. Sign out and sign back in (session tokens are minted at sign-in; existing sessions don't pick up metadata changes)
+3. Sign out and sign back in
+
+**To create a client or consultant user:**
+- Use the self-service sign-up at `/sign-up` — role is set during registration
+
+**Webhook must be active** for self-service sign-up to work. The webhook creates org+contact (clients) or profile (consultants). If the webhook isn't configured in the Clerk Dashboard pointing at your dev URL + `/api/webhooks/clerk`, DB records won't be created and the portal pages will error.
 
 ---
 
 ## Known Gaps / Intentional Deferrals
 
-These are real, not forgotten — they're MVP B or below the M1 bar:
-
-- **No client or consultant UI.** The `(client)` and `(consultant)` route group directories exist but have no pages.
-- **`listScopes`, `listShortlists`, `listDeliverables` not in service layer.** The admin list pages for these three modules query `db` directly. Acceptable for now; add service functions before any non-admin code needs them.
-- **No AI features.** `AIOutputLog` is in the schema but nothing writes to it yet. No AI features in M1.
-- **No email sending.** `sendInvitation` transitions state but does not actually email the consultant.
-- **No file uploads.** `deliverable.fileUrl` is nullable and unused; upload flow is MVP B.
+- **No email sending.** `sendInvitation` transitions state but does not actually email the consultant. Invitations are only visible via the admin UI or the consultant portal if they already know to check.
+- **No file uploads.** `deliverable.fileUrl` is a text field — consultants paste a URL (Google Drive, Dropbox, etc.). Real upload flow is MVP B.
 - **No payments.** The full Stripe integration is MVP B.
 - **Debug page exists at `/debug`.** Returns raw session claims. Remove before any real user exposure.
-- **Seed data may be present in the DB.** Running `npx prisma db seed` adds test data. The integration test `afterEach` cleans up its own records but doesn't touch manually seeded rows. Run a manual `TRUNCATE` via Neon MCP if the DB gets dirty before testing.
+- **AI output is not gated.** `draftScopeWithAIAction` and `generateMatchRationaleAction` write to `AIOutputLog` but the output is shown directly without a separate human-review step in the UI. The service layer logs it; the approval step is implicit (admin reviews and edits before publishing). Per `ai-gates.md`, explicit gate UI is MVP B.
+- **Webhook requires public URL.** In local dev, the Clerk webhook can't reach `localhost`. Use `ngrok` or deploy to Vercel to test the real sign-up flow end-to-end.
+- **`listScopes`, `listShortlists`, `listDeliverables` not in service layer.** Admin list pages query `db` directly. Fine for now.
+- **Seed data may be present in the DB.** Integration test `afterEach` cleans its own records but not manually seeded rows.
 
 ---
 
 ## Schema Additions (post-M1)
 
-Two new models added after M1 completion (both migrated to live Neon DB):
-
-- **`RevisionRequest`** — links engagement + deliverable, status `OPEN/ADDRESSED/WITHDRAWN`. Service functions in `modules/deliverables/service.ts`: `createRevisionRequest`, `addressRevisionRequest`, `withdrawRevisionRequest`, `listRevisionRequests`.
-- **`EngagementCommunication`** — immutable typed messages on engagements, indexed on `engagementId`. Service in `modules/communications/service.ts`: `sendMessage`, `listMessages`.
-- **`modules/restrictions/service.ts`** — `isEligible(consultantId)` enforces the SPEC §6.3 invariant that active restrictions exclude a consultant from matching.
+- **`RevisionRequest`** — links engagement + deliverable, status `OPEN/ADDRESSED/WITHDRAWN`. Service in `modules/deliverables/service.ts`.
+- **`EngagementCommunication`** — immutable typed messages on engagements. Service in `modules/communications/service.ts`.
+- **`ShortlistCandidate.rationale String?`** — AI-generated match rationale, populated by `generateMatchRationaleAction`, displayed in client shortlist view.
+- **`AIOutputLog`** — logs every Claude call: model, prompt, output, action type, entity reference. Written by both AI admin actions.
+- **`modules/restrictions/service.ts`** — `isEligible(consultantId)` enforces SPEC §6.3.
 
 ---
 
@@ -95,14 +118,13 @@ All in `.claude/skills/`:
 
 | File | Contents |
 |------|----------|
-| `entity-dictionary.md` | All 21 models with fields, relations, notes |
+| `entity-dictionary.md` | All models with fields, relations, notes |
 | `state-machine.md` | All transition maps as FROM → TO (action) |
 | `permissions.md` | Permission invariants from SPEC §6.3 and what enforces each |
-| `ai-gates.md` | AI approval gate table, AIOutputLog fields, M1 stub status |
+| `ai-gates.md` | AI approval gate table, AIOutputLog fields |
 | `scoping-matrix/SKILL.md` | 8 seed rows across 7 specializations |
 
-Decision log: `decision-log.md` (20 architectural decisions, append-only).
-
+Decision log: `decision-log.md` (append-only).
 Security reviewer subagent: `.claude/agents/security-reviewer.md`.
 
 ---
@@ -116,18 +138,17 @@ cd /Users/andrewabbott/Development
 git subtree push --prefix=Personal/Consulten/build consulten main
 ```
 
-The `consulten` remote points to `https://github.com/aabbottbos/c0nsult3n.git` and is configured on the parent repo (not this directory).
+The `consulten` remote points to `https://github.com/aabbottbos/c0nsult3n.git`.
 
 ---
 
-## Next Work (M2 candidates)
+## Next Work (M3 candidates)
 
-These are the likely next steps once M1 is validated with real founder use:
+M2 is complete. The logical next steps, roughly in priority order:
 
-1. **Client portal** — scoped view: project status, scope approval, shortlist review, proposal selection
-2. **Consultant portal** — invitation inbox, proposal submission, engagement delivery
-3. **Email notifications** — send on invitation, proposal selected, engagement started
-4. **File upload** — deliverable submission with S3-compatible storage
-5. **Payments** — Stripe integration for scope confirmation and closeout
-6. **Vercel deployment** — production deploy with env vars wired
-7. **Remove `/debug` page** — before any real user exposure
+1. **Vercel deployment** — wire env vars, deploy to production URL, point Clerk webhook at production
+2. **Email notifications** — send on: invitation sent, proposal selected, engagement started, deliverable submitted. Resend or Postmark; template per event type
+3. **File upload** — replace URL text field with actual upload (Vercel Blob or S3-compatible); deliverable submission UX
+4. **Remove `/debug` page** — before any real user exposure
+5. **Payments** — Stripe for scope confirmation deposit and closeout payment
+6. **Explicit AI gate UI** — admin approval step before AI-drafted scope or rationale is shown to clients/consultants
