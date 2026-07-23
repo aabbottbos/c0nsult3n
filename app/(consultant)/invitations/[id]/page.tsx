@@ -19,7 +19,7 @@ export default async function ConsultantInvitationDetailPage({ params }: { param
   if (!invitation) notFound()
 
   const existingProposal = invitation.proposals[0] ?? null
-  const canRespond = ['SENT', 'VIEWED', 'QUESTIONS_ASKED', 'ACCEPTED_INTEREST'].includes(invitation.status)
+  const canRespond = ['SENT', 'VIEWED', 'QUESTIONS_ASKED'].includes(invitation.status)
 
   return (
     <div className="p-8 space-y-6 max-w-2xl">
