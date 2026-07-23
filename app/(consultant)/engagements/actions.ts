@@ -43,7 +43,7 @@ export async function submitDeliverableAction(engagementId: string, formData: Fo
   const clientContact = eng.project.client.contacts[0]
   if (clientContact) {
     await sendDeliverableSubmittedEmail({
-      clientEmail: clientContact.user.email,
+      clientEmail: clientContact.email,
       clientName: clientContact.name,
       projectTitle: eng.project.title,
       projectId: eng.projectId,

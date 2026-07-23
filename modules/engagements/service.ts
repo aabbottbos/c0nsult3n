@@ -51,7 +51,7 @@ export async function createEngagement(
 
   if (clientContact) {
     await sendEngagementStartedEmail({
-      clientEmail: clientContact.user.email,
+      clientEmail: clientContact.email,
       clientName: clientContact.name,
       projectTitle: eng.project.title,
       projectId: eng.project.id,

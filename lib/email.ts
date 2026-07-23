@@ -1,11 +1,11 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = 'Consulten <noreply@consulten.co>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
 async function send(to: string, subject: string, text: string) {
   try {
+    const resend = new Resend(process.env.RESEND_API_KEY)
     await resend.emails.send({ from: FROM, to, subject, text })
   } catch (err) {
     console.error('[email] Failed to send:', subject, 'to', to, err)
