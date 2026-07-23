@@ -23,7 +23,7 @@ export async function submitDeliverableAction(engagementId: string, formData: Fo
 
   let fileUrl: string | null = null
   if (file && file.size > 0) {
-    const blob = await put(file.name, file, { access: 'public' })
+    const blob = await put(`${engagementId}/${file.name}`, file, { access: 'public' })
     fileUrl = blob.url
   }
 
