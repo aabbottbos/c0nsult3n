@@ -39,7 +39,10 @@ export async function POST(req: Request) {
 
   if (event.type === 'user.created') {
     const rawRole = event.data.unsafe_metadata?.role
-    const role: Role = (rawRole === 'client' || rawRole === 'consultant') ? rawRole : 'client'
+    if (rawRole !== 'client' && rawRole !== 'consultant') {
+      return new Response('Invalid or missing role', { status: 400 })
+    }
+    const role: Role = rawRole
 
     const clerk = await clerkClient()
     await clerk.users.updateUserMetadata(event.data.id, {
