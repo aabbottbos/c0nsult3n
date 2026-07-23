@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getShortlist } from '@/modules/shortlists/service'
 import { db } from '@/lib/db'
-import { submitForAdminReviewAction, makeClientVisibleAction, closeShortlistAction } from '../actions'
+import { submitForAdminReviewAction, makeClientVisibleAction, closeShortlistAction, generateMatchRationaleAction } from '../actions'
 import { SHORTLIST_TRANSITIONS } from '@/modules/shortlists/types'
 
 export default async function ShortlistDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -28,6 +28,9 @@ export default async function ShortlistDetailPage({ params }: { params: Promise<
             {shortlist.candidates.map(c => (
               <li key={c.id} className="text-sm text-slate-700">
                 <a href={`/consultants/${c.consultantId}`} className="text-indigo-600 hover:underline">{c.consultantId}</a>
+                {c.rationale && (
+                  <p className="text-xs text-slate-500 mt-0.5 italic">"{c.rationale}"</p>
+                )}
               </li>
             ))}
           </ul>
@@ -50,6 +53,11 @@ export default async function ShortlistDetailPage({ params }: { params: Promise<
           {allowed.includes('CLOSED') && (
             <form action={closeShortlistAction.bind(null, id)}>
               <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-red-600 text-white hover:bg-red-700">Close</button>
+            </form>
+          )}
+          {(shortlist.status === 'ADMIN_REVIEW' || shortlist.status === 'CLIENT_VISIBLE') && (
+            <form action={generateMatchRationaleAction.bind(null, id)}>
+              <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-purple-600 text-white hover:bg-purple-700">Generate Match Rationale</button>
             </form>
           )}
           {allowed.length === 0 && <p className="text-sm text-slate-400">No actions available.</p>}
