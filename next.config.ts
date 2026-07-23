@@ -4,7 +4,7 @@ import path from 'path'
 const nextConfig: NextConfig = {
   turbopack: {
     resolveAlias: {
-      '@/app/generated/prisma': path.resolve(__dirname, 'app/generated/prisma/client.ts'),
+      '@/app/generated/prisma': './app/generated/prisma/client.ts',
     },
   },
   webpack(config) {
