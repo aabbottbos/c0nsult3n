@@ -42,6 +42,17 @@ export async function addressRevisionRequest(revisionRequestId: string, actorId:
   })
 }
 
+export async function withdrawRevisionRequest(revisionRequestId: string, actorId: string) {
+  return db.$transaction(async (tx: Tx) => {
+    const revisionRequest = await tx.revisionRequest.update({
+      where: { id: revisionRequestId },
+      data: { status: 'WITHDRAWN' },
+    })
+    await logEvent(tx, { entityType: 'RevisionRequest', entityId: revisionRequest.id, action: 'withdraw', actorId, actorRole: 'client' })
+    return revisionRequest
+  })
+}
+
 export async function listRevisionRequests(engagementId: string) {
   return db.revisionRequest.findMany({ where: { engagementId } })
 }
