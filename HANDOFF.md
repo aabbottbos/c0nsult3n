@@ -1,6 +1,6 @@
 # Consulten — Handoff Context
 
-Current state of the build as of 2026-07-23. Update this file when milestone status changes or decisions are reversed.
+Current state of the build as of 2026-07-23. Last updated 2026-07-23. Update this file when milestone status changes or decisions are reversed.
 
 ---
 
@@ -12,7 +12,7 @@ Current state of the build as of 2026-07-23. Update this file when milestone sta
 | M1 Admin UI (Plan B) | ✅ Complete | All 11 tasks: 10 module CRUD pages + dashboard, pushed to GitHub |
 | M1 SPEC Gaps | ✅ Complete | RevisionRequest + EngagementCommunication entities, restrictions service, skill docs, decision log, scoping matrix, security-reviewer subagent |
 | M2 Portals + AI | ✅ Complete | 14 tasks: sign-up flow, webhooks, client portal, consultant portal, AI scope drafting, AI match rationale, tests |
-| M3 | Not started | Candidates: email notifications, file upload, Vercel deploy, payments |
+| M3 | In progress | Focus: email notifications. Vercel deploy blocked (Git integration auth issue). |
 
 ---
 
@@ -25,7 +25,7 @@ Current state of the build as of 2026-07-23. Update this file when milestone sta
 - AI match rationale: "Generate Match Rationale" button on shortlist detail calls Claude per-candidate, stores on `ShortlistCandidate.rationale`, logs to `AIOutputLog`
 - Event log at `/events` and on each detail page
 
-### Client portal (`/projects`, `/projects/new`, `/projects/[id]`, `/engagements/[id]`)
+### Client portal (`/projects`, `/projects/new`, `/projects/[id]`, `/projects/[id]/engagement/[engagementId]`)
 - Sign up via `/sign-up` → role selector → webhook assigns role, creates org + contact
 - Sidebar lists the client's projects with stage badges and action dots
 - New project form → auto-submits on create
@@ -57,7 +57,7 @@ Current state of the build as of 2026-07-23. Update this file when milestone sta
 | GitHub repo | `https://github.com/aabbottbos/c0nsult3n` (personal account `aabbottbos`) |
 | Neon project | ID `blue-cherry-03073401`, region `us-west-2` |
 | Neon DB | `neondb` on branch `main` |
-| Vercel | Not yet deployed |
+| Vercel | Project `c0nsult3n` under team `c0nsult3n`. Deployments failing — Git integration rejects pushes (author email `aabbottbos` GitHub account not matching Vercel team member). CLI deploys fail with DNS errors. Needs investigation. |
 | Clerk | Dev instance `cheerful-lark-30`; app ID `app_3GsuSFLVS2W9tnmFIaS797VVPyK`; webhook route at `/api/webhooks/clerk` |
 | Sentry | Configured in `sentry.*.config.ts`; DSN in `.env.local` |
 | Anthropic | `ANTHROPIC_API_KEY` in `.env.local`; model `claude-sonnet-4-6`; wrapper at `lib/ai.ts` |
@@ -67,6 +67,15 @@ Current state of the build as of 2026-07-23. Update this file when milestone sta
 postgresql://neondb_owner:npg_sPwSOVEzG6W2@ep-quiet-night-afjrij5d-pooler.c-2.us-west-2.aws.neon.tech/neondb?channel_binding=require&sslmode=require
 ```
 This goes in both `.env` (for Vitest/seed) and `.env.local` (for Next.js dev).
+
+**Build fixes applied (M3, 2026-07-23):**
+- `prisma generate` added to build script; `app/generated/prisma/` added to `.gitignore`
+- `prisma` and `dotenv` moved to `dependencies` (required at Vercel build time)
+- Webpack + Turbopack alias added in `next.config.ts`: `@/app/generated/prisma` → `app/generated/prisma/client.ts` (Prisma 7 no longer generates `index.ts`)
+- Vitest alias in `vitest.config.ts` unchanged (already correct)
+- Duplicate Next.js routes resolved: `(admin)/engagements`, `(admin)/invitations`, `(admin)/projects` moved to `(admin)/admin/*` (URLs: `/admin/engagements`, `/admin/invitations`, `/admin/projects`)
+- Client engagement detail moved from `(client)/engagements/[id]` to `(client)/projects/[id]/engagement/[engagementId]`
+- Sign-out button added to all three portal sidebars (`components/sign-out-button.tsx`)
 
 ---
 
@@ -142,13 +151,13 @@ The `consulten` remote points to `https://github.com/aabbottbos/c0nsult3n.git`.
 
 ---
 
-## Next Work (M3 candidates)
+## Next Work (M3)
 
-M2 is complete. The logical next steps, roughly in priority order:
+M3 is in progress. Focus is email notifications first.
 
-1. **Vercel deployment** — wire env vars, deploy to production URL, point Clerk webhook at production
-2. **Email notifications** — send on: invitation sent, proposal selected, engagement started, deliverable submitted. Resend or Postmark; template per event type
-3. **File upload** — replace URL text field with actual upload (Vercel Blob or S3-compatible); deliverable submission UX
-4. **Remove `/debug` page** — before any real user exposure
-5. **Payments** — Stripe for scope confirmation deposit and closeout payment
-6. **Explicit AI gate UI** — admin approval step before AI-drafted scope or rationale is shown to clients/consultants
+1. **Email notifications** (in progress) — send on: invitation sent, proposal selected, engagement started, deliverable submitted. Provider TBD (Resend recommended).
+2. **Vercel deployment** — blocked on Git integration auth. Workaround: investigate connecting GitHub account `aabbottbos` to Vercel team member email, or switch to manual CLI deploy once DNS issue resolved.
+3. **Remove `/debug` page** — before any real user exposure.
+4. **File upload** — replace URL text field with real upload (Vercel Blob); deliverable submission UX.
+5. **Payments** — Stripe for scope confirmation deposit and closeout payment (MVP B unless pilot needs it).
+6. **Explicit AI gate UI** — admin approval step before AI-drafted scope or rationale is shown to users (MVP B).
