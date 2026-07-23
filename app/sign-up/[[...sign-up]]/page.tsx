@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 export default function SignUpPage() {
-  const { signUp, isLoaded, setActive } = useSignUp()
+  const { signUp } = useSignUp()
   const router = useRouter()
   const [step, setStep] = useState<'credentials' | 'role'>('credentials')
   const [email, setEmail] = useState('')
@@ -15,7 +15,7 @@ export default function SignUpPage() {
 
   async function handleCredentials(e: React.FormEvent) {
     e.preventDefault()
-    if (!isLoaded) return
+    if (!signUp) return
     setLoading(true)
     setError('')
     try {
@@ -30,16 +30,16 @@ export default function SignUpPage() {
 
   async function handleRole(e: React.FormEvent) {
     e.preventDefault()
-    if (!isLoaded || !role) return
+    if (!signUp || !role) return
     setLoading(true)
     setError('')
     try {
       await signUp.update({ unsafeMetadata: { role } })
-      const result = await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId })
+      if (signUp.status === 'complete') {
+        await signUp.finalize()
         router.push(role === 'client' ? '/projects' : '/invitations')
       } else {
+        await signUp.verifications.sendEmailCode()
         router.push('/sign-up/verify')
       }
     } catch (err: unknown) {
