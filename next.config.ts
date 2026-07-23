@@ -2,6 +2,11 @@ import type { NextConfig } from 'next'
 import path from 'path'
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
   turbopack: {
     resolveAlias: {
       '@/app/generated/prisma': './app/generated/prisma/client.ts',
