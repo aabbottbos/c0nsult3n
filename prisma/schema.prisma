@@ -284,12 +284,13 @@ model Engagement {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
-  project          Project           @relation(fields: [projectId], references: [id])
-  scope            Scope             @relation(fields: [scopeId], references: [id])
-  proposal         Proposal          @relation(fields: [proposalId], references: [id])
-  consultant       ConsultantProfile @relation(fields: [consultantId], references: [id])
+  project          Project                  @relation(fields: [projectId], references: [id])
+  scope            Scope                    @relation(fields: [scopeId], references: [id])
+  proposal         Proposal                 @relation(fields: [proposalId], references: [id])
+  consultant       ConsultantProfile        @relation(fields: [consultantId], references: [id])
   deliverables     Deliverable[]
   revisionRequests RevisionRequest[]
+  communications   EngagementCommunication[]
 }
 
 model Deliverable {
@@ -317,6 +318,18 @@ model RevisionRequest {
 
   engagement  Engagement  @relation(fields: [engagementId], references: [id])
   deliverable Deliverable @relation(fields: [deliverableId], references: [id])
+}
+
+model EngagementCommunication {
+  id           String   @id @default(cuid())
+  engagementId String
+  senderId     String
+  senderRole   Role
+  messageType  String
+  body         String
+  createdAt    DateTime @default(now())
+
+  engagement Engagement @relation(fields: [engagementId], references: [id])
 }
 
 // ─── Cross-cutting ──────────────────────────────────────────────────────────
