@@ -4,6 +4,7 @@ import { logEvent } from '@/modules/audit-events/service'
 import { markEngagementCreated, closeProject } from '@/modules/projects/service'
 import type { Role, EngagementStatus } from '@/app/generated/prisma'
 import { ENGAGEMENT_TRANSITIONS } from './types'
+import { sendProposalSelectedEmail, sendEngagementStartedEmail } from '@/lib/email'
 
 async function transition(engagementId: string, to: EngagementStatus, action: string, actorId: string, actorRole: Role) {
   return db.$transaction(async (tx: Tx) => {
@@ -25,6 +26,38 @@ export async function createEngagement(
     return eng
   })
   await markEngagementCreated(data.projectId, actorId)
+
+  // Fire emails after transaction — failure must not roll back state
+  const eng = await db.engagement.findUniqueOrThrow({
+    where: { id: engagement.id },
+    include: {
+      consultant: { include: { user: true } },
+      project: {
+        include: {
+          client: { include: { contacts: true } },
+        },
+      },
+    },
+  })
+
+  const clientContact = eng.project.client.contacts[0]
+
+  await sendProposalSelectedEmail({
+    consultantEmail: eng.consultant.user.email,
+    consultantName: eng.consultant.user.email,
+    projectTitle: eng.project.title,
+    engagementId: eng.id,
+  })
+
+  if (clientContact) {
+    await sendEngagementStartedEmail({
+      clientEmail: clientContact.user.email,
+      clientName: clientContact.name,
+      projectTitle: eng.project.title,
+      projectId: eng.project.id,
+    })
+  }
+
   return engagement
 }
 
