@@ -5,6 +5,7 @@ import { requireRole } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { submitDeliverable } from '@/modules/engagements/service'
 import { logEvent } from '@/modules/audit-events/service'
+import { sendDeliverableSubmittedEmail } from '@/lib/email'
 
 async function consultantProfileId() {
   await requireRole('consultant')
@@ -27,5 +28,28 @@ export async function submitDeliverableAction(engagementId: string, formData: Fo
   })
 
   await submitDeliverable(engagementId, profileId)
+
+  // Fire email after state transition — failure must not block redirect
+  const eng = await db.engagement.findUniqueOrThrow({
+    where: { id: engagementId },
+    include: {
+      project: {
+        include: {
+          client: { include: { contacts: true } },
+        },
+      },
+    },
+  })
+  const clientContact = eng.project.client.contacts[0]
+  if (clientContact) {
+    await sendDeliverableSubmittedEmail({
+      clientEmail: clientContact.user.email,
+      clientName: clientContact.name,
+      projectTitle: eng.project.title,
+      projectId: eng.projectId,
+      engagementId: eng.id,
+    })
+  }
+
   redirect(`/engagements/${engagementId}`)
 }
