@@ -1,16 +1,16 @@
 import { notFound } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
 import { db } from '@/lib/db'
-import { acceptDeliverableAction, requestRevisionAction } from '../../projects/actions'
+import { acceptDeliverableAction, requestRevisionAction } from '../../../../actions'
 
-export default async function ClientEngagementDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default async function ClientEngagementDetailPage({ params }: { params: Promise<{ id: string; engagementId: string }> }) {
+  const { engagementId } = await params
   const { userId } = await auth()
   const user = await db.user.findUniqueOrThrow({ where: { clerkId: userId! } })
   const contact = await db.clientContact.findUniqueOrThrow({ where: { userId: user.id } })
 
   const engagement = await db.engagement.findUnique({
-    where: { id, clientId: contact.organizationId },
+    where: { id: engagementId, clientId: contact.organizationId },
     include: {
       scope: true,
       deliverables: { orderBy: { createdAt: 'desc' } },

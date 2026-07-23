@@ -137,12 +137,12 @@ export default async function ClientProjectDetailPage({ params }: { params: Prom
                 <form action={acceptDeliverableAction.bind(null, engagement.id, project.id)}>
                   <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">Accept Deliverable</button>
                 </form>
-                <a href={`/engagements/${engagement.id}`} className="px-3 py-1.5 text-sm font-medium rounded bg-slate-100 text-slate-700 hover:bg-slate-200">View Details</a>
+                <a href={`/projects/${project.id}/engagement/${engagement.id}`} className="px-3 py-1.5 text-sm font-medium rounded bg-slate-100 text-slate-700 hover:bg-slate-200">View Details</a>
               </div>
             </div>
           )}
           {engagement.status !== 'UNDER_REVIEW' && (
-            <a href={`/engagements/${engagement.id}`} className="text-sm text-indigo-600 hover:underline">View engagement →</a>
+            <a href={`/projects/${project.id}/engagement/${engagement.id}`} className="text-sm text-indigo-600 hover:underline">View engagement →</a>
           )}
         </div>
       )}
