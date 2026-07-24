@@ -3,9 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { requireRole } from '@/lib/auth'
 import { runMatching } from '@/modules/matching/service'
-import { db } from '@/lib/db'
-import { logEvent } from '@/modules/audit-events/service'
-import type { Tx } from '@/lib/db'
+import { addCandidateWithAI } from '@/modules/shortlists/service'
 
 async function actorId() {
   await requireRole('admin')
@@ -28,17 +26,6 @@ export async function addCandidateAction(
   aiFitRationale: string | null,
 ) {
   const actor = await actorId()
-  await db.$transaction(async (tx: Tx) => {
-    const candidate = await tx.shortlistCandidate.create({
-      data: {
-        shortlistId,
-        consultantId,
-        addedBy: actor,
-        aiFitTier,
-        aiFitRationale,
-      },
-    })
-    await logEvent(tx, { entityType: 'ShortlistCandidate', entityId: candidate.id, action: 'add_candidate', actorId: actor, actorRole: 'admin' })
-  })
+  await addCandidateWithAI(shortlistId, consultantId, actor, aiFitTier, aiFitRationale)
   redirect(`/admin/projects/${projectId}/matching?ran=1`)
 }

@@ -58,3 +58,23 @@ export async function closeShortlist(shortlistId: string, actorId: string) {
 export async function getShortlist(id: string) {
   return db.shortlist.findUnique({ where: { id }, include: { candidates: { include: { consultant: true } } } })
 }
+
+export async function addCandidateWithAI(
+  shortlistId: string,
+  consultantId: string,
+  actorId: string,
+  aiFitTier: string | null,
+  aiFitRationale: string | null,
+) {
+  return db.$transaction(async (tx: Tx) => {
+    const existing = await tx.shortlistCandidate.findFirst({
+      where: { shortlistId, consultantId },
+    })
+    if (existing) return existing
+    const candidate = await tx.shortlistCandidate.create({
+      data: { shortlistId, consultantId, addedBy: actorId, aiFitTier, aiFitRationale },
+    })
+    await logEvent(tx, { entityType: 'ShortlistCandidate', entityId: candidate.id, action: 'add_candidate', actorId, actorRole: 'admin' })
+    return candidate
+  })
+}

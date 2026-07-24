@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
 import { runMatchingAction, addCandidateAction } from './actions'
 import { isEligible } from '@/modules/restrictions/service'
+import type { ConsultantProfile, User } from '@/app/generated/prisma'
 
 export default async function AdminMatchingPage({ params, searchParams }: {
   params: Promise<{ id: string }>
@@ -21,7 +22,7 @@ export default async function AdminMatchingPage({ params, searchParams }: {
     where: { approvalStatus: 'approved', accountStatus: 'active', publicationStatus: 'published' },
     include: { user: true },
   })
-  const eligible = []
+  const eligible: (ConsultantProfile & { user: User })[] = []
   for (const c of allCandidates) {
     const { eligible: ok } = await isEligible(c.id)
     if (ok) eligible.push(c)
@@ -122,7 +123,7 @@ export default async function AdminMatchingPage({ params, searchParams }: {
       {shortlist && (
         <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-2">
           <h2 className="text-sm font-semibold text-slate-700">Shortlist ({shortlist.candidates.length} candidates)</h2>
-          <a href={`/shortlists/${shortlist.id}`} className="text-sm text-indigo-600 hover:underline">Manage shortlist →</a>
+          <a href={`/admin/shortlists/${shortlist.id}`} className="text-sm text-indigo-600 hover:underline">Manage shortlist →</a>
         </div>
       )}
     </div>
