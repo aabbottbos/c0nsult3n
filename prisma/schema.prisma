@@ -230,12 +230,20 @@ model Shortlist {
 }
 
 model ShortlistCandidate {
-  id           String   @id @default(cuid())
-  shortlistId  String
-  consultantId String
-  addedBy      String
-  rationale    String?
-  createdAt    DateTime @default(now())
+  id                  String   @id @default(cuid())
+  shortlistId         String
+  consultantId        String
+  addedBy             String
+  rationale           String?
+  filterReason        String?
+  baselineScore       Int?
+  aiFitTier           String?
+  aiFitScore          Int?
+  aiFitRationale      String?
+  aiRiskFlags         String?
+  adminApprovalStatus String?
+  clientVisibleStatus String?
+  createdAt           DateTime @default(now())
 
   shortlist   Shortlist         @relation(fields: [shortlistId], references: [id])
   consultant  ConsultantProfile @relation(fields: [consultantId], references: [id])
