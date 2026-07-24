@@ -8,7 +8,7 @@ import { createScope, moveToAdminReview, approveScope, confirmScope } from '@/mo
 import { createShortlist, addCandidate, submitForAdminReview, makeClientVisible } from '@/modules/shortlists/service'
 import { createInvitation, sendInvitation, acceptInterest } from '@/modules/invitations/service'
 import { createProposal, selectProposal } from '@/modules/proposals/service'
-import { createEngagement, startEngagement, submitDeliverable, beginReview, acceptEngagement, closeEngagement } from '@/modules/engagements/service'
+import { startEngagement, submitDeliverable, beginReview, acceptEngagement, closeEngagement } from '@/modules/engagements/service'
 import { createDeliverable } from '@/modules/deliverables/service'
 
 
@@ -107,13 +107,8 @@ describe('M1 spine: full path intake → closeout', () => {
 
     await selectProposal(proposal.id, admin.id)
 
-    const engagement = await createEngagement({
-      projectId: project.id,
-      scopeId: scope.id,
-      proposalId: proposal.id,
-      consultantId: profile.id,
-      clientId: org.id,
-    }, admin.id)
+    // selectProposal now creates the engagement automatically
+    const engagement = await prisma.engagement.findFirstOrThrow({ where: { proposalId: proposal.id } })
     expect(engagement.status).toBe('PENDING_START')
 
     project = await prisma.project.findUniqueOrThrow({ where: { id: project.id } })

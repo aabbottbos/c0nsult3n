@@ -24,7 +24,7 @@ export default async function ClientProjectDetailPage({ params }: { params: Prom
             include: {
               consultant: true,
               invitations: {
-                include: { proposals: { where: { status: 'SUBMITTED' } } },
+                include: { proposals: { where: { status: { in: ['SUBMITTED', 'PENDING_ADMIN_REVIEW'] } } } },
               },
             },
           },
@@ -97,6 +97,7 @@ export default async function ClientProjectDetailPage({ params }: { params: Prom
           <div className="space-y-4">
             {project.shortlist.candidates.map(c => {
               const proposal = c.invitations.flatMap(i => i.proposals)[0] ?? null
+              const isPendingReview = proposal?.status === 'PENDING_ADMIN_REVIEW'
               return (
                 <div key={c.id} className="border border-slate-200 rounded-lg p-4 space-y-3">
                   <div className="flex items-start justify-between">
@@ -104,18 +105,23 @@ export default async function ClientProjectDetailPage({ params }: { params: Prom
                       <div className="font-medium text-slate-900 text-sm">Consultant {c.consultantId.slice(0, 8)}…</div>
                       {c.rationale && <p className="text-sm text-slate-600 mt-1 italic">"{c.rationale}"</p>}
                     </div>
-                    {proposal
-                      ? <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">Proposal in</span>
-                      : <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-500">Awaiting proposal</span>
+                    {isPendingReview
+                      ? <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">Proposal in — under review</span>
+                      : proposal
+                        ? <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">Proposal in</span>
+                        : <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-500">Awaiting proposal</span>
                     }
                   </div>
-                  {proposal && (
+                  {proposal && !isPendingReview && (
                     <>
                       <p className="text-sm text-slate-700">{proposal.fitStatement}</p>
                       <form action={selectProposalAction.bind(null, proposal.id, project.id)}>
                         <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">Select this consultant</button>
                       </form>
                     </>
+                  )}
+                  {isPendingReview && (
+                    <p className="text-xs text-slate-500">This consultant has proposed some scope adjustments. We're reviewing them and will update you shortly.</p>
                   )}
                 </div>
               )
