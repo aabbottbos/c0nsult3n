@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { requireRole } from '@/lib/auth'
 import { submitForAdminReview, makeClientVisible, closeShortlist } from '@/modules/shortlists/service'
+import { createInvitation, sendInvitation } from '@/modules/invitations/service'
 import { callClaude } from '@/lib/ai'
 import { db } from '@/lib/db'
 
@@ -79,5 +80,19 @@ export async function generateMatchRationaleAction(shortlistId: string) {
     },
   })
 
+  redirect(`/shortlists/${shortlistId}`)
+}
+
+export async function createAndSendInvitationAction(
+  shortlistCandidateId: string,
+  projectId: string,
+  consultantId: string,
+  shortlistId: string,
+) {
+  const actor = await actorId()
+  const expiresAt = new Date()
+  expiresAt.setDate(expiresAt.getDate() + 14) // 14-day response deadline
+  const invitation = await createInvitation({ shortlistCandidateId, projectId, consultantId, expiresAt }, actor)
+  await sendInvitation(invitation.id, actor)
   redirect(`/shortlists/${shortlistId}`)
 }

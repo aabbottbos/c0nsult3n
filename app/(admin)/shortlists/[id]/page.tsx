@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getShortlist } from '@/modules/shortlists/service'
 import { db } from '@/lib/db'
-import { submitForAdminReviewAction, makeClientVisibleAction, closeShortlistAction, generateMatchRationaleAction } from '../actions'
+import { submitForAdminReviewAction, makeClientVisibleAction, closeShortlistAction, generateMatchRationaleAction, createAndSendInvitationAction } from '../actions'
 import { SHORTLIST_TRANSITIONS } from '@/modules/shortlists/types'
 
 export default async function ShortlistDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -24,13 +24,29 @@ export default async function ShortlistDetailPage({ params }: { params: Promise<
       <div className="bg-white rounded-lg border border-slate-200 p-6">
         <h2 className="text-sm font-semibold text-slate-700 mb-3">Candidates ({shortlist.candidates.length})</h2>
         {shortlist.candidates.length === 0 ? <p className="text-sm text-slate-400">No candidates yet.</p> : (
-          <ul className="space-y-2">
+          <ul className="space-y-3 divide-y divide-slate-100">
             {shortlist.candidates.map(c => (
-              <li key={c.id} className="text-sm text-slate-700">
-                <a href={`/consultants/${c.consultantId}`} className="text-indigo-600 hover:underline">{c.consultantId}</a>
-                {c.rationale && (
-                  <p className="text-xs text-slate-500 mt-0.5 italic">"{c.rationale}"</p>
-                )}
+              <li key={c.id} className="pt-3 first:pt-0 space-y-1">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <a href={`/consultants/${c.consultantId}`} className="text-sm text-indigo-600 hover:underline">{c.consultantId.slice(0, 12)}…</a>
+                    {c.aiFitTier && (
+                      <span className={`ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                        c.aiFitTier === 'HIGH' ? 'bg-green-100 text-green-700' :
+                        c.aiFitTier === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-slate-100 text-slate-500'
+                      }`}>{c.aiFitTier}</span>
+                    )}
+                    {c.rationale && (
+                      <p className="text-xs text-slate-500 mt-0.5 italic">"{c.rationale}"</p>
+                    )}
+                  </div>
+                  {(shortlist.status === 'ADMIN_REVIEW' || shortlist.status === 'CLIENT_VISIBLE' || shortlist.status === 'UPDATED') && (
+                    <form action={createAndSendInvitationAction.bind(null, c.id, shortlist.projectId, c.consultantId, shortlist.id)}>
+                      <button type="submit" className="px-3 py-1.5 text-xs font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">Invite</button>
+                    </form>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

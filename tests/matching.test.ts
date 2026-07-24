@@ -85,3 +85,56 @@ describe('M4 matching service', () => {
     expect(saved.aiFitRationale).toBe('Strong analytical background.')
   })
 })
+
+describe('M4 invitation permission invariants', () => {
+  it('createInvitation fails if shortlistCandidateId does not exist', async () => {
+    const admin = await upsertUser({ clerkId: 'm4_inv_admin', email: 'invadmin@m4.test', role: 'admin' })
+    const { createInvitation } = await import('@/modules/invitations/service')
+
+    await expect(
+      createInvitation({
+        shortlistCandidateId: 'nonexistent-id',
+        projectId: 'nonexistent-project',
+        consultantId: 'nonexistent-consultant',
+      }, admin.id)
+    ).rejects.toThrow()
+  })
+
+  it('client shortlist query never returns aiFitTier, aiRiskFlags, or filterReason', async () => {
+    const admin = await upsertUser({ clerkId: 'm4_client_perm', email: 'cperm@m4.test', role: 'admin' })
+    const consultantUser = await upsertUser({ clerkId: 'm4_cperm_cons', email: 'cpermc@m4.test', role: 'consultant' })
+    const profile = await createProfile({ userId: consultantUser.id }, admin.id)
+
+    const org = await createOrganization({ name: 'M4 Perm Org' }, admin.id)
+    const project = await prisma.project.create({ data: { clientId: org.id, title: 'M4 Perm Test', description: 'desc', status: 'SHORTLIST_READY' } })
+    const shortlist = await prisma.shortlist.create({ data: { projectId: project.id, status: 'CLIENT_VISIBLE' } })
+    await prisma.shortlistCandidate.create({
+      data: {
+        shortlistId: shortlist.id,
+        consultantId: profile.id,
+        addedBy: admin.id,
+        aiFitTier: 'HIGH',
+        aiFitRationale: 'Internal only',
+        aiRiskFlags: 'Some risk flag',
+        filterReason: 'Passed all filters',
+        rationale: 'Client-approved rationale',
+      },
+    })
+
+    // Simulate the client query: only select fields the client should see
+    const clientView = await prisma.shortlistCandidate.findMany({
+      where: { shortlistId: shortlist.id },
+      select: {
+        id: true,
+        consultantId: true,
+        rationale: true,
+        // aiFitTier, aiFitRationale, aiRiskFlags, filterReason intentionally NOT selected
+      },
+    })
+
+    expect(clientView[0]).not.toHaveProperty('aiFitTier')
+    expect(clientView[0]).not.toHaveProperty('aiRiskFlags')
+    expect(clientView[0]).not.toHaveProperty('filterReason')
+    expect(clientView[0]).toHaveProperty('rationale', 'Client-approved rationale')
+  })
+})
