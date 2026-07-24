@@ -123,7 +123,7 @@ export default async function AdminMatchingPage({ params, searchParams }: {
       {shortlist && (
         <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-2">
           <h2 className="text-sm font-semibold text-slate-700">Shortlist ({shortlist.candidates.length} candidates)</h2>
-          <a href={`/admin/shortlists/${shortlist.id}`} className="text-sm text-indigo-600 hover:underline">Manage shortlist →</a>
+          <a href={`/shortlists/${shortlist.id}`} className="text-sm text-indigo-600 hover:underline">Manage shortlist →</a>
         </div>
       )}
     </div>
