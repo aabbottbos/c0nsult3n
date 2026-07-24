@@ -48,7 +48,8 @@ export async function runMatching(projectId: string, actorId: string): Promise<M
     try {
       const parsed = JSON.parse(raw) as { assessments: AiAssessment[] }
       aiAssessments = parsed.assessments
-    } catch {
+    } catch (e) {
+      console.error('runMatching: failed to parse Claude response', e, raw)
       aiAssessments = []
     }
 
@@ -58,15 +59,22 @@ export async function runMatching(projectId: string, actorId: string): Promise<M
         promptVersion: 'v1',
         model: 'claude-sonnet-4-6',
         inputSummary: `Project: ${project.title}, eligible: ${eligible.length}`,
-        output: JSON.stringify(aiAssessments),
+        output: raw,
         exposed: false,
         reviewed: false,
       },
     })
   }
 
-  await db.$transaction(async (tx: Tx) => {
-    await logEvent(tx, { entityType: 'Project', entityId: projectId, action: 'run_matching', actorId, actorRole: 'admin' })
+  await db.eventLog.create({
+    data: {
+      entityType: 'Project',
+      entityId: projectId,
+      action: 'run_matching',
+      actorId,
+      actorRole: 'admin',
+      data: {},
+    },
   })
 
   return { shortlistId: shortlist.id, eligible, aiAssessments }
