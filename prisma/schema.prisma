@@ -85,8 +85,11 @@ enum InvitationStatus {
 enum ProposalStatus {
   DRAFT
   SUBMITTED
+  PENDING_ADMIN_REVIEW
+  NOT_SELECTED
   SELECTED
   REJECTED
+  WITHDRAWN
 }
 
 enum EngagementStatus {
@@ -268,14 +271,17 @@ model ConsultantInvitation {
 }
 
 model Proposal {
-  id           String         @id @default(cuid())
-  invitationId String
-  consultantId String
-  status       ProposalStatus @default(DRAFT)
-  fitStatement String
-  deviations   Json           @default("{}")
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id                   String         @id @default(cuid())
+  invitationId         String
+  consultantId         String
+  status               ProposalStatus @default(DRAFT)
+  fitStatement         String
+  deviations           Json           @default("{}")
+  deviationReviewedAt  DateTime?
+  deviationReviewedBy  String?
+  deviationsApproved   Boolean?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   invitation  ConsultantInvitation @relation(fields: [invitationId], references: [id])
   consultant  ConsultantProfile    @relation(fields: [consultantId], references: [id])
