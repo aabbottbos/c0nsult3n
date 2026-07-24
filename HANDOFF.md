@@ -1,6 +1,6 @@
 # Consulten — Handoff Context
 
-Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M3 complete). Update this file when milestone status changes or decisions are reversed.
+Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M4 complete). Update this file when milestone status changes or decisions are reversed.
 
 ---
 
@@ -13,6 +13,7 @@ Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M3 complet
 | M1 SPEC Gaps | ✅ Complete | RevisionRequest + EngagementCommunication entities, restrictions service, skill docs, decision log, scoping matrix, security-reviewer subagent |
 | M2 Portals + AI | ✅ Complete | 14 tasks: sign-up flow, webhooks, client portal, consultant portal, AI scope drafting, AI match rationale, tests |
 | M3 | ✅ Complete | Email notifications (Resend), file uploads (Vercel Blob), removed /debug page, tsconfig path fix, test teardown fix. Vercel deploy still blocked (separate). |
+| M4 | ✅ Complete | Matching pipeline (eligibility filter + AI assessment), admin matching workspace, addCandidateWithAI service function, invitation dispatch from shortlist detail. 16/16 tests. |
 
 ---
 
@@ -24,6 +25,8 @@ Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M3 complet
 - AI scope drafting: "Draft Scope with AI" button on project detail (status `UNDER_ADMIN_REVIEW`) calls Claude, creates a Scope record, logs to `AIOutputLog`
 - AI match rationale: "Generate Match Rationale" button on shortlist detail calls Claude per-candidate, stores on `ShortlistCandidate.rationale`, logs to `AIOutputLog`
 - Event log at `/events` and on each detail page
+- **M4: Admin matching workspace** at `/admin/projects/[id]/matching` — "Run Matching" button runs eligibility filter + AI assessment, shows eligible consultants with AI tier badges, per-consultant "Add to Shortlist" button
+- **M4: Invitation dispatch** — "Invite" button on shortlist detail (status `ADMIN_REVIEW`/`CLIENT_VISIBLE`/`UPDATED`) creates and sends invitation with 14-day deadline
 
 ### Client portal (`/projects`, `/projects/new`, `/projects/[id]`, `/projects/[id]/engagement/[engagementId]`)
 - Sign up via `/sign-up` → role selector → webhook assigns role, creates org + contact
@@ -47,7 +50,8 @@ Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M3 complet
 ### Tests
 - `tests/spine.test.ts` — M1 full happy-path spine (5 tests) + M2 permission invariants (4 tests): client org isolation, consultant invitation isolation, webhook role assignment for both roles
 - `tests/file-upload.test.ts` — file upload: mocks `@vercel/blob` `put()`, verifies `Deliverable.fileUrl` stored and engagement transitions to `DELIVERABLE_SUBMITTED`
-- 10/10 tests pass against the real Neon dev DB
+- `tests/matching.test.ts` — M4 matching tests (4 tests: includes eligible, excludes restricted, excludes non-approved/non-published, aiFitTier stored on candidate) + M4 permission invariants (2 tests: createInvitation FK enforcement, client field projection)
+- 16/16 tests pass against the real Neon dev DB
 
 ---
 
@@ -120,6 +124,9 @@ Roles are set via `publicMetadata.role`. The proxy at `proxy.ts` (Next.js 16 ren
 - **`RevisionRequest`** — links engagement + deliverable, status `OPEN/ADDRESSED/WITHDRAWN`. Service in `modules/deliverables/service.ts`.
 - **`EngagementCommunication`** — immutable typed messages on engagements. Service in `modules/communications/service.ts`.
 - **`ShortlistCandidate.rationale String?`** — AI-generated match rationale, populated by `generateMatchRationaleAction`, displayed in client shortlist view.
+- **`ShortlistCandidate` M4 fields (all nullable)** — `filterReason`, `baselineScore`, `aiFitTier`, `aiFitScore`, `aiFitRationale`, `aiRiskFlags`, `adminApprovalStatus`, `clientVisibleStatus`. Populated by `runMatching` (aiFitTier/aiFitRationale) and `addCandidateWithAI`. Internal fields — never exposed to client.
+- **`modules/matching/service.ts`** — `runMatching(projectId, actorId)`: eligibility filter (approved/active/published + restrictions check) + AI fit assessment. Creates Shortlist if absent. Writes AIOutputLog. Returns `{ shortlistId, eligible, aiAssessments }`.
+- **`modules/shortlists/service.ts` — `addCandidateWithAI`** — idempotent addCandidate that also stores `aiFitTier` and `aiFitRationale`. Has `findFirst` guard to prevent duplicates.
 - **`AIOutputLog`** — logs every Claude call: model, prompt, output, action type, entity reference. Written by both AI admin actions.
 - **`modules/restrictions/service.ts`** — `isEligible(consultantId)` enforces SPEC §6.3.
 
@@ -155,11 +162,12 @@ The `consulten` remote points to `https://github.com/aabbottbos/c0nsult3n.git`.
 
 ---
 
-## Next Work (M4)
+## Next Work (M5)
 
-M3 is complete. M4 focus is getting the app live and pilot-ready.
+M4 is complete. M5 spec is in `SPEC - Complete MVP A.md §3`.
 
-1. **Vercel deployment** (top blocker) — Git integration rejects pushes due to email mismatch between GitHub account `aabbottbos` and Vercel team. Options: (a) add `aabbottbos` GitHub account as a Vercel team member, (b) reconfigure Git integration to use the correct GitHub account, (c) use a Vercel deploy hook triggered from GitHub Actions instead. Once unblocked, add all env vars (`DATABASE_URL`, `CLERK_SECRET_KEY`, `RESEND_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `ANTHROPIC_API_KEY`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `SENTRY_DSN`) to Vercel production.
-2. **Pilot-readiness UX pass** — walk through the full flow as each role (admin → client → consultant) and identify any UX gaps that would block a real pilot engagement. No new features; just polish what's there.
-3. **Explicit AI gate UI** (MVP B) — admin approval step before AI-drafted scope or rationale is shown to users. Currently implicit (admin edits before publishing). Defer unless pilot reveals it's needed.
-4. **Payments** (MVP B) — Stripe integration for scope confirmation deposit and closeout payment. Defer unless pilot requires it.
+1. **Vercel deployment** (top blocker) — Git integration rejects pushes due to email mismatch between GitHub account `aabbottbos` and Vercel team. Options: (a) add `aabbottbos` GitHub account as a Vercel team member, (b) reconfigure Git integration to use the correct GitHub account, (c) use a Vercel deploy hook triggered from GitHub Actions instead. Once unblocked, add all env vars to Vercel production.
+2. **M5: Proposal, selection, engagement** — Consultant submits proposal/fit response; admin reviews deviations; client selects consultant; engagement created. Key entities: `Proposal` (structured deviations), `Engagement` (approved scope version). Key rule: proposals with deviations need admin review before client can accept.
+3. **M4 known gaps to address** — (a) Duplicate-invitation guard: no server-side check if consultant already has active invitation; (b) Invite button on shortlist page doesn't show "Invited" status; (c) `generateMatchRationaleAction` in `shortlists/actions.ts` writes DB directly (pre-existing, not M4 regression).
+4. **Explicit AI gate UI** (MVP B) — admin approval step before AI output shown to users. Defer unless pilot requires it.
+5. **Payments** (MVP B) — Stripe integration. Defer.
