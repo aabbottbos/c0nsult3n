@@ -1,6 +1,6 @@
 # Consulten — Handoff Context
 
-Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M4 complete). Update this file when milestone status changes or decisions are reversed.
+Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M5 complete). Update this file when milestone status changes or decisions are reversed.
 
 ---
 
@@ -14,6 +14,7 @@ Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M4 complet
 | M2 Portals + AI | ✅ Complete | 14 tasks: sign-up flow, webhooks, client portal, consultant portal, AI scope drafting, AI match rationale, tests |
 | M3 | ✅ Complete | Email notifications (Resend), file uploads (Vercel Blob), removed /debug page, tsconfig path fix, test teardown fix. Vercel deploy still blocked (separate). |
 | M4 | ✅ Complete | Matching pipeline (eligibility filter + AI assessment), admin matching workspace, addCandidateWithAI service function, invitation dispatch from shortlist detail. 16/16 tests. |
+| M5 | ✅ Complete | Proposal deviation gate (PENDING_ADMIN_REVIEW), consultant selection → engagement auto-creation, sibling NOT_SELECTED, withdraw, admin deviation review UI, consultant deviation fields. 21/21 tests. |
 
 ---
 
@@ -51,7 +52,16 @@ Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M4 complet
 - `tests/spine.test.ts` — M1 full happy-path spine (5 tests) + M2 permission invariants (4 tests): client org isolation, consultant invitation isolation, webhook role assignment for both roles
 - `tests/file-upload.test.ts` — file upload: mocks `@vercel/blob` `put()`, verifies `Deliverable.fileUrl` stored and engagement transitions to `DELIVERABLE_SUBMITTED`
 - `tests/matching.test.ts` — M4 matching tests (4 tests: includes eligible, excludes restricted, excludes non-approved/non-published, aiFitTier stored on candidate) + M4 permission invariants (2 tests: createInvitation FK enforcement, client field projection)
-- 16/16 tests pass against the real Neon dev DB
+- `tests/proposals.test.ts` — M5 proposal tests (5 tests: deviation gate, deviations approved → SUBMITTED → engagement created, no-deviation SUBMITTED, withdraw, sibling NOT_SELECTED + single engagement)
+- 21/21 tests pass against the real Neon dev DB
+
+### M5: Proposal, selection, engagement
+- Consultant proposal form: fit statement + optional deviation fields (fee/timing/deliverable). If deviations present, proposal enters `PENDING_ADMIN_REVIEW` instead of `SUBMITTED`.
+- Admin proposal detail (`/proposals/[id]`): shows deviation fields with amber badge; "Approve Deviations" / "Reject" buttons when status is `PENDING_ADMIN_REVIEW`. Admin actions replaced — no "Select Proposal" button (selection is client-driven).
+- Client shortlist: shows "Proposal in — under review" amber badge for `PENDING_ADMIN_REVIEW` proposals; blocks "Select this consultant" button until admin approves. Selecting a consultant auto-creates the engagement and marks all sibling proposals `NOT_SELECTED`.
+- Consultant can withdraw a submitted proposal (before selection) from their invitation detail page.
+- Spine test updated: `selectProposal` now auto-creates the engagement, so the spine test no longer calls `createEngagement` manually.
+- 21/21 tests pass.
 
 ---
 
@@ -162,12 +172,10 @@ The `consulten` remote points to `https://github.com/aabbottbos/c0nsult3n.git`.
 
 ---
 
-## Next Work (M5)
+## Next Work (M6)
 
-M4 is complete. M5 spec is in `SPEC - Complete MVP A.md §3`.
+M5 is complete. M6 spec is in `SPEC - Complete MVP A.md §4`.
 
-1. **Vercel deployment** (top blocker) — Git integration rejects pushes due to email mismatch between GitHub account `aabbottbos` and Vercel team. Options: (a) add `aabbottbos` GitHub account as a Vercel team member, (b) reconfigure Git integration to use the correct GitHub account, (c) use a Vercel deploy hook triggered from GitHub Actions instead. Once unblocked, add all env vars to Vercel production.
-2. **M5: Proposal, selection, engagement** — Consultant submits proposal/fit response; admin reviews deviations; client selects consultant; engagement created. Key entities: `Proposal` (structured deviations), `Engagement` (approved scope version). Key rule: proposals with deviations need admin review before client can accept.
-3. **M4 known gaps to address** — (a) Duplicate-invitation guard: no server-side check if consultant already has active invitation; (b) Invite button on shortlist page doesn't show "Invited" status; (c) `generateMatchRationaleAction` in `shortlists/actions.ts` writes DB directly (pre-existing, not M4 regression).
-4. **Explicit AI gate UI** (MVP B) — admin approval step before AI output shown to users. Defer unless pilot requires it.
-5. **Payments** (MVP B) — Stripe integration. Defer.
+1. **Vercel deployment** (ongoing blocker) — Git integration rejects pushes due to email mismatch. See M4 notes.
+2. **M6: Delivery, communication, AI QA, closeout, feedback** — Deliverable submission workflow, structured communications, AI QA on deliverables, revision cycle, closeout, client feedback. Key entities: enhanced `Engagement` workspace (role-differentiated view), `EngagementCommunication` (already exists), AI QA output.
+3. **M5 known gaps** — (a) No duplicate-proposal guard (consultant can submit multiple proposals if invitation resets); (b) Withdrawn proposals don't update invitation status back; (c) `listProposals` admin page doesn't filter by status — all proposals shown including NOT_SELECTED/WITHDRAWN.
