@@ -1,6 +1,6 @@
 # Consulten — Handoff Context
 
-Current state of the build as of 2026-07-23. Last updated 2026-07-23. Update this file when milestone status changes or decisions are reversed.
+Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M3 complete). Update this file when milestone status changes or decisions are reversed.
 
 ---
 
@@ -12,7 +12,7 @@ Current state of the build as of 2026-07-23. Last updated 2026-07-23. Update thi
 | M1 Admin UI (Plan B) | ✅ Complete | All 11 tasks: 10 module CRUD pages + dashboard, pushed to GitHub |
 | M1 SPEC Gaps | ✅ Complete | RevisionRequest + EngagementCommunication entities, restrictions service, skill docs, decision log, scoping matrix, security-reviewer subagent |
 | M2 Portals + AI | ✅ Complete | 14 tasks: sign-up flow, webhooks, client portal, consultant portal, AI scope drafting, AI match rationale, tests |
-| M3 | In progress | Focus: email notifications. Vercel deploy blocked (Git integration auth issue). |
+| M3 | ✅ Complete | Email notifications (Resend), file uploads (Vercel Blob), removed /debug page, tsconfig path fix, test teardown fix. Vercel deploy still blocked (separate). |
 
 ---
 
@@ -37,7 +37,7 @@ Current state of the build as of 2026-07-23. Last updated 2026-07-23. Update thi
 - Sidebar shows pending invitation badge count and links to Active Engagements
 - Invitation inbox with urgency coloring (red < 5 days, amber < 10 days to expiry)
 - Invitation detail shows full scope; proposal form visible only when status is `SENT/VIEWED/QUESTIONS_ASKED`
-- Engagement detail shows scope reminder, deliverable submit form (URL input, only when `IN_PROGRESS`), submitted deliverables list
+- Engagement detail shows scope reminder, file upload form (only when `IN_PROGRESS`), submitted deliverables list with Blob URL links
 
 ### Auth + routing
 - `/sign-up` — two-step Clerk flow: credentials (email + password), then role selector (client / consultant). Uses Clerk v7 `SignUpFutureResource` API.
@@ -46,7 +46,8 @@ Current state of the build as of 2026-07-23. Last updated 2026-07-23. Update thi
 
 ### Tests
 - `tests/spine.test.ts` — M1 full happy-path spine (5 tests) + M2 permission invariants (4 tests): client org isolation, consultant invitation isolation, webhook role assignment for both roles
-- 9/9 tests pass against the real Neon dev DB
+- `tests/file-upload.test.ts` — file upload: mocks `@vercel/blob` `put()`, verifies `Deliverable.fileUrl` stored and engagement transitions to `DELIVERABLE_SUBMITTED`
+- 10/10 tests pass against the real Neon dev DB
 
 ---
 
@@ -61,6 +62,8 @@ Current state of the build as of 2026-07-23. Last updated 2026-07-23. Update thi
 | Clerk | Dev instance `cheerful-lark-30`; app ID `app_3GsuSFLVS2W9tnmFIaS797VVPyK`; webhook route at `/api/webhooks/clerk` |
 | Sentry | Configured in `sentry.*.config.ts`; DSN in `.env.local` |
 | Anthropic | `ANTHROPIC_API_KEY` in `.env.local`; model `claude-sonnet-4-6`; wrapper at `lib/ai.ts` |
+| Resend | `RESEND_API_KEY` in `.env.local` + Vercel env vars; FROM `Consulten <noreply@consulten.co>`; wrapper at `lib/email.ts` — 4 triggers: invitation sent, proposal selected, engagement started, deliverable submitted |
+| Vercel Blob | `BLOB_READ_WRITE_TOKEN` in `.env.local` + Vercel env vars; public access; blob keys prefixed `{engagementId}/{filename}`; 10mb body limit in `next.config.ts` |
 
 **Database connection string** (pooled, for app + tests):
 ```
@@ -72,10 +75,12 @@ This goes in both `.env` (for Vitest/seed) and `.env.local` (for Next.js dev).
 - `prisma generate` added to build script; `app/generated/prisma/` added to `.gitignore`
 - `prisma` and `dotenv` moved to `dependencies` (required at Vercel build time)
 - Webpack + Turbopack alias added in `next.config.ts`: `@/app/generated/prisma` → `app/generated/prisma/client.ts` (Prisma 7 no longer generates `index.ts`)
+- `tsconfig.json` updated with explicit `@/app/generated/prisma` path so `tsc --noEmit` resolves it correctly
 - Vitest alias in `vitest.config.ts` unchanged (already correct)
 - Duplicate Next.js routes resolved: `(admin)/engagements`, `(admin)/invitations`, `(admin)/projects` moved to `(admin)/admin/*` (URLs: `/admin/engagements`, `/admin/invitations`, `/admin/projects`)
-- Client engagement detail moved from `(client)/engagements/[id]` to `(client)/projects/[id]/engagement/[engagementId]`
+- Client engagement detail moved from `(client)/engagements/[id]` to `(client)/projects/[id]/engagement/[engagementId]`; fixed broken relative import (`../../../../actions` → `../../../actions`)
 - Sign-out button added to all three portal sidebars (`components/sign-out-button.tsx`)
+- `tests/setup.ts` teardown order fixed: added `revisionRequest` and `engagementCommunication` deletes in correct FK order
 
 ---
 
@@ -100,14 +105,13 @@ Roles are set via `publicMetadata.role`. The proxy at `proxy.ts` (Next.js 16 ren
 
 ## Known Gaps / Intentional Deferrals
 
-- **No email sending.** `sendInvitation` transitions state but does not actually email the consultant. Invitations are only visible via the admin UI or the consultant portal if they already know to check.
-- **No file uploads.** `deliverable.fileUrl` is a text field — consultants paste a URL (Google Drive, Dropbox, etc.). Real upload flow is MVP B.
+- **Vercel deployment blocked.** Git integration rejects pushes — Vercel team member email doesn't match GitHub account `aabbottbos`. CLI deploys also fail with DNS errors. Workaround: investigate connecting GitHub account to Vercel team, or use a deploy hook instead of Git integration. This is the top M4 blocker.
 - **No payments.** The full Stripe integration is MVP B.
-- **Debug page exists at `/debug`.** Returns raw session claims. Remove before any real user exposure.
 - **AI output is not gated.** `draftScopeWithAIAction` and `generateMatchRationaleAction` write to `AIOutputLog` but the output is shown directly without a separate human-review step in the UI. The service layer logs it; the approval step is implicit (admin reviews and edits before publishing). Per `ai-gates.md`, explicit gate UI is MVP B.
 - **Webhook requires public URL.** In local dev, the Clerk webhook can't reach `localhost`. Use `ngrok` or deploy to Vercel to test the real sign-up flow end-to-end.
 - **`listScopes`, `listShortlists`, `listDeliverables` not in service layer.** Admin list pages query `db` directly. Fine for now.
 - **Seed data may be present in the DB.** Integration test `afterEach` cleans its own records but not manually seeded rows.
+- **Deliverable link text is the raw Blob URL.** The submitted deliverables list renders the full `blob.vercel-storage.com/...` URL as link text. Could show filename instead — cosmetic, not blocking.
 
 ---
 
@@ -151,13 +155,11 @@ The `consulten` remote points to `https://github.com/aabbottbos/c0nsult3n.git`.
 
 ---
 
-## Next Work (M3)
+## Next Work (M4)
 
-M3 is in progress. Focus is email notifications first.
+M3 is complete. M4 focus is getting the app live and pilot-ready.
 
-1. **Email notifications** (in progress) — send on: invitation sent, proposal selected, engagement started, deliverable submitted. Provider TBD (Resend recommended).
-2. **Vercel deployment** — blocked on Git integration auth. Workaround: investigate connecting GitHub account `aabbottbos` to Vercel team member email, or switch to manual CLI deploy once DNS issue resolved.
-3. **Remove `/debug` page** — before any real user exposure.
-4. **File upload** — replace URL text field with real upload (Vercel Blob); deliverable submission UX.
-5. **Payments** — Stripe for scope confirmation deposit and closeout payment (MVP B unless pilot needs it).
-6. **Explicit AI gate UI** — admin approval step before AI-drafted scope or rationale is shown to users (MVP B).
+1. **Vercel deployment** (top blocker) — Git integration rejects pushes due to email mismatch between GitHub account `aabbottbos` and Vercel team. Options: (a) add `aabbottbos` GitHub account as a Vercel team member, (b) reconfigure Git integration to use the correct GitHub account, (c) use a Vercel deploy hook triggered from GitHub Actions instead. Once unblocked, add all env vars (`DATABASE_URL`, `CLERK_SECRET_KEY`, `RESEND_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `ANTHROPIC_API_KEY`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `SENTRY_DSN`) to Vercel production.
+2. **Pilot-readiness UX pass** — walk through the full flow as each role (admin → client → consultant) and identify any UX gaps that would block a real pilot engagement. No new features; just polish what's there.
+3. **Explicit AI gate UI** (MVP B) — admin approval step before AI-drafted scope or rationale is shown to users. Currently implicit (admin edits before publishing). Defer unless pilot reveals it's needed.
+4. **Payments** (MVP B) — Stripe integration for scope confirmation deposit and closeout payment. Defer unless pilot requires it.

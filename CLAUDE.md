@@ -15,9 +15,9 @@ you need it — do not inline that knowledge here.
 - Relational DB: Neon (serverless Postgres) — connection string in `.env` as `DATABASE_URL`
 - ORM: Prisma 7 with `@prisma/adapter-neon` (`PrismaNeon` adapter); generates to `app/generated/prisma/`
 - Auth: Clerk (`@clerk/nextjs` v7) — roles stored in `sessionClaims.metadata.role` as lowercase `admin` | `client` | `consultant`
-- Transactional email: TBD (MVP B)
-- File storage: TBD (MVP B)
-- AI provider: TBD (MVP B)
+- Transactional email: Resend (`resend` package) — wrapper at `lib/email.ts`, `RESEND_API_KEY` env var, FROM `Consulten <noreply@consulten.co>`
+- File storage: Vercel Blob (`@vercel/blob`) — public access, `BLOB_READ_WRITE_TOKEN` env var, blob keys prefixed `{engagementId}/{filename}`
+- AI provider: Anthropic (`@anthropic-ai/sdk`) — wrapper at `lib/ai.ts`, `ANTHROPIC_API_KEY` env var, model `claude-sonnet-4-6`
 - Payments: TBD (MVP B)
 - Error monitoring: Sentry (`@sentry/nextjs` v10) — DSN in `.env.local`
 
@@ -88,7 +88,13 @@ you need it — do not inline that knowledge here.
   `fileParallelism: false` in `vitest.config.ts` is required — do not change it.
   `testTimeout` is 60 000 ms; the spine test takes ~30 s against Neon.
 - **Prisma generates to `app/generated/prisma/`**, not the default location.
-  Import from `@/app/generated/prisma`, not `@prisma/client`.
+  Import from `@/app/generated/prisma`, not `@prisma/client`. This alias is defined
+  in `tsconfig.json` (for tsc), `next.config.ts` (for Next.js bundler), and
+  `vitest.config.ts` (for Vitest). All three must stay in sync.
+- **Prisma 7 no longer generates `index.ts`.** It generates `client.ts`, `browser.ts`,
+  `enums.ts`. Imports from `@/app/generated/prisma` resolve to `client.ts` via alias.
+  `app/generated/prisma/` is gitignored; `prisma generate` runs automatically in the
+  build script (`npm run build`).
 - **Prisma 7 adapter:** Use `PrismaNeon({ connectionString })` from `@prisma/adapter-neon`.
   Do not pass `neon()` (the query function) — pass the options object directly.
 - **Next.js 15+ dynamic params are async.** Detail pages must type params as
@@ -99,6 +105,23 @@ you need it — do not inline that knowledge here.
   All `requireRole()` calls must use the lowercase string.
 - **`scope.assumptions` and `scope.exclusions` are nullable** in the schema.
   Render with `?? ''` or conditional display to avoid TypeScript errors.
+- **Admin route group uses `/admin/` prefix.** Admin pages live at
+  `app/(admin)/admin/engagements/`, `app/(admin)/admin/invitations/`,
+  `app/(admin)/admin/projects/` to avoid URL conflicts with client/consultant routes.
+  URLs are `/admin/engagements`, `/admin/invitations`, `/admin/projects`.
+- **Client engagement page lives at a nested path** to avoid conflict with consultant
+  engagements: `app/(client)/projects/[id]/engagement/[engagementId]/page.tsx`.
+  URL: `/projects/:id/engagement/:engagementId`.
+- **`tests/setup.ts` teardown order matters.** Delete in this order to avoid FK
+  violations: `revisionRequest` → `deliverable` → `engagementCommunication` →
+  `engagement` → `proposal` → `consultantInvitation` → `shortlistCandidate` →
+  `shortlist` → `scope` → `project` → `consultantRestriction` → `consultantProfile` →
+  `clientContact` → `clientOrganization` → `eventLog` → `legalAcceptanceRecord` → `user`.
+- **Email functions are fire-and-forget.** `lib/email.ts` catches all errors internally
+  and logs them — they never throw. Always call email functions after state transitions,
+  never inside a transaction.
+- **Vercel Blob keys are prefixed** with `{engagementId}/{filename}` to prevent
+  collisions when multiple consultants upload files with the same name.
 
 # Coding guidelines
 
