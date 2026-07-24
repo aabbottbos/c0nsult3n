@@ -6,7 +6,7 @@ import { createProfile, approveProfile, publishProfile } from '@/modules/consult
 import { createProject, submitProject, startAdminReview, markReadyForMatching, markMatchingInProgress } from '@/modules/projects/service'
 import { createScope, moveToAdminReview, approveScope, confirmScope } from '@/modules/scopes/service'
 import { createShortlist, addCandidate, submitForAdminReview, makeClientVisible } from '@/modules/shortlists/service'
-import { createInvitation, sendInvitation } from '@/modules/invitations/service'
+import { createInvitation, sendInvitation, acceptInterest } from '@/modules/invitations/service'
 import { createProposal, selectProposal, reviewDeviations, withdrawProposal } from '@/modules/proposals/service'
 
 async function buildInvitation() {
@@ -34,6 +34,7 @@ async function buildInvitation() {
   const shortlistCandidate = await prisma.shortlistCandidate.findFirstOrThrow({ where: { shortlistId: shortlist.id } })
   const invitation = await createInvitation({ projectId: project.id, consultantId: profile.id, shortlistCandidateId: shortlistCandidate.id }, admin.id)
   await sendInvitation(invitation.id, admin.id)
+  await acceptInterest(invitation.id, consultantUser.id)
   return { admin, org, profile, consultantUser, project, scope, invitation }
 }
 
@@ -64,5 +65,73 @@ describe('M5 proposal and selection', () => {
     const engagement = await prisma.engagement.findFirstOrThrow({ where: { proposalId: proposal.id } })
     expect(engagement.projectId).toBe(project.id)
     expect(engagement.scopeId).toBe(scope.id)
+  })
+
+  it('proposal without deviations is immediately SUBMITTED', async () => {
+    const { profile, invitation, consultantUser } = await buildInvitation()
+    const proposal = await createProposal(
+      { invitationId: invitation.id, consultantId: profile.id, fitStatement: 'I fit' },
+      consultantUser.id
+    )
+    expect(proposal.status).toBe('SUBMITTED')
+  })
+
+  it('consultant can withdraw a SUBMITTED proposal', async () => {
+    const { profile, invitation, consultantUser } = await buildInvitation()
+    const proposal = await createProposal(
+      { invitationId: invitation.id, consultantId: profile.id, fitStatement: 'I fit' },
+      consultantUser.id
+    )
+    expect(proposal.status).toBe('SUBMITTED')
+    await withdrawProposal(proposal.id, consultantUser.id)
+    const refreshed = await prisma.proposal.findUniqueOrThrow({ where: { id: proposal.id } })
+    expect(refreshed.status).toBe('WITHDRAWN')
+  })
+
+  it('selecting a consultant marks sibling proposals NOT_SELECTED', async () => {
+    const admin = await upsertUser({ clerkId: 'm5_admin_sib', email: 'admin@m5sib.test', role: 'admin' })
+    const clientUser = await upsertUser({ clerkId: 'm5_client_sib', email: 'client@m5sib.test', role: 'client' })
+    const consultantUser1 = await upsertUser({ clerkId: 'm5_cons_sib1', email: 'cons1@m5sib.test', role: 'consultant' })
+    const consultantUser2 = await upsertUser({ clerkId: 'm5_cons_sib2', email: 'cons2@m5sib.test', role: 'consultant' })
+    const org = await createOrganization({ name: 'M5 Sib Corp' }, admin.id)
+    await createContact({ userId: clientUser.id, organizationId: org.id, name: 'Client', email: 'client@m5sib.test' }, admin.id)
+    const profile1 = await createProfile({ userId: consultantUser1.id }, admin.id)
+    const profile2 = await createProfile({ userId: consultantUser2.id }, admin.id)
+    await approveProfile(profile1.id, admin.id); await publishProfile(profile1.id, admin.id)
+    await approveProfile(profile2.id, admin.id); await publishProfile(profile2.id, admin.id)
+
+    let project = await createProject({ clientId: org.id, title: 'M5 Sib Project', description: 'test' }, admin.id)
+    project = await submitProject(project.id, admin.id)
+    project = await startAdminReview(project.id, admin.id)
+    const scope = await createScope({ projectId: project.id, deliverable: 'Report', acceptanceCriteria: 'Done', assumptions: '', exclusions: '', dueDate: new Date('2027-01-01'), fee: 1000, effortCapHours: 5 }, admin.id)
+    await moveToAdminReview(scope.id, admin.id)
+    await approveScope(scope.id, admin.id)
+    await confirmScope(scope.id, admin.id)
+    project = await markReadyForMatching(project.id, admin.id)
+    project = await markMatchingInProgress(project.id, admin.id)
+    const shortlist = await createShortlist(project.id, admin.id)
+    await addCandidate(shortlist.id, profile1.id, admin.id)
+    await addCandidate(shortlist.id, profile2.id, admin.id)
+    await submitForAdminReview(shortlist.id, admin.id)
+    await makeClientVisible(shortlist.id, admin.id)
+    const [sc1, sc2] = await prisma.shortlistCandidate.findMany({ where: { shortlistId: shortlist.id } })
+    const inv1 = await createInvitation({ projectId: project.id, consultantId: profile1.id, shortlistCandidateId: sc1.id }, admin.id)
+    const inv2 = await createInvitation({ projectId: project.id, consultantId: profile2.id, shortlistCandidateId: sc2.id }, admin.id)
+    await sendInvitation(inv1.id, admin.id)
+    await sendInvitation(inv2.id, admin.id)
+    await acceptInterest(inv1.id, consultantUser1.id)
+    await acceptInterest(inv2.id, consultantUser2.id)
+
+    const proposal1 = await createProposal({ invitationId: inv1.id, consultantId: profile1.id, fitStatement: 'Fit 1' }, consultantUser1.id)
+    const proposal2 = await createProposal({ invitationId: inv2.id, consultantId: profile2.id, fitStatement: 'Fit 2' }, consultantUser2.id)
+
+    const contact = await prisma.clientContact.findFirstOrThrow({ where: { organizationId: org.id } })
+    await selectProposal(proposal1.id, contact.userId)
+
+    const sibling = await prisma.proposal.findUniqueOrThrow({ where: { id: proposal2.id } })
+    expect(sibling.status).toBe('NOT_SELECTED')
+    const engagements = await prisma.engagement.findMany({ where: { projectId: project.id } })
+    expect(engagements).toHaveLength(1)
+    expect(engagements[0].consultantId).toBe(profile1.id)
   })
 })
