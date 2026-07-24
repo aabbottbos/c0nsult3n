@@ -96,6 +96,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </div>
       )}
 
+      {['READY_FOR_MATCHING', 'MATCHING_IN_PROGRESS'].includes(project.status) && (
+        <div className="bg-white rounded-lg border border-slate-200 p-6">
+          <h2 className="text-sm font-semibold text-slate-700 mb-2">Matching</h2>
+          <a href={`/admin/projects/${id}/matching`} className="text-sm text-indigo-600 hover:underline">Run Matching →</a>
+        </div>
+      )}
+
       <div className="bg-white rounded-lg border border-slate-200 p-6">
         <h2 className="text-sm font-semibold text-slate-700 mb-3">Event Log</h2>
         {events.length === 0 ? <p className="text-sm text-slate-400">No events.</p> : (

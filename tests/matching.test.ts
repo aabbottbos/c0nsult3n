@@ -56,4 +56,32 @@ describe('M4 matching service', () => {
 
     expect(result.eligible.map(e => e.id)).not.toContain(pendingProfile.id)
   })
+
+  it('shortlist candidate stores aiFitTier and aiFitRationale', async () => {
+    const admin = await upsertUser({ clerkId: 'm4_admin_4', email: 'admin4@m4.test', role: 'admin' })
+    const consultantUser = await upsertUser({ clerkId: 'm4_cons_4', email: 'cons4@m4.test', role: 'consultant' })
+    const profile = await createProfile({ userId: consultantUser.id }, admin.id)
+    await approveProfile(profile.id, admin.id)
+    await publishProfile(profile.id, admin.id)
+
+    const org = await createOrganization({ name: 'M4 Org 4' }, admin.id)
+    const project = await prisma.project.create({ data: { clientId: org.id, title: 'M4 Test 4', description: 'desc', status: 'READY_FOR_MATCHING' } })
+    await createScope({ projectId: project.id, deliverable: 'Report', acceptanceCriteria: 'Done', assumptions: '', exclusions: '', dueDate: new Date('2027-01-01'), fee: 1000, effortCapHours: 5 }, admin.id)
+
+    // Directly create a shortlist and candidate to simulate addCandidate with M4 fields
+    const shortlist = await prisma.shortlist.create({ data: { projectId: project.id } })
+    const candidate = await prisma.shortlistCandidate.create({
+      data: {
+        shortlistId: shortlist.id,
+        consultantId: profile.id,
+        addedBy: admin.id,
+        aiFitTier: 'HIGH',
+        aiFitRationale: 'Strong analytical background.',
+      },
+    })
+
+    const saved = await prisma.shortlistCandidate.findUniqueOrThrow({ where: { id: candidate.id } })
+    expect(saved.aiFitTier).toBe('HIGH')
+    expect(saved.aiFitRationale).toBe('Strong analytical background.')
+  })
 })
