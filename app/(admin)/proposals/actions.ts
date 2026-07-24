@@ -2,7 +2,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { requireRole } from '@/lib/auth'
-import { selectProposal } from '@/modules/proposals/service'
+import { reviewDeviations } from '@/modules/proposals/service'
 
 async function actorId() {
   await requireRole('admin')
@@ -11,7 +11,12 @@ async function actorId() {
   return userId
 }
 
-export async function selectProposalAction(id: string) {
-  await selectProposal(id, await actorId())
+export async function approveDeviationsAction(id: string) {
+  await reviewDeviations(id, true, await actorId())
+  redirect(`/proposals/${id}`)
+}
+
+export async function rejectDeviationsAction(id: string) {
+  await reviewDeviations(id, false, await actorId())
   redirect(`/proposals/${id}`)
 }
