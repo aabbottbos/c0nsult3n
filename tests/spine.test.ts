@@ -8,8 +8,7 @@ import { createScope, moveToAdminReview, approveScope, confirmScope } from '@/mo
 import { createShortlist, addCandidate, submitForAdminReview, makeClientVisible } from '@/modules/shortlists/service'
 import { createInvitation, sendInvitation, acceptInterest } from '@/modules/invitations/service'
 import { createProposal, selectProposal } from '@/modules/proposals/service'
-import { startEngagement, beginReview, acceptEngagement, closeEngagement } from '@/modules/engagements/service'
-import { submitDeliverable } from '@/modules/deliverables/service'
+import { startEngagement, acceptEngagement, closeEngagement } from '@/modules/engagements/service'
 
 
 describe('M1 spine: full path intake → closeout', () => {
@@ -116,13 +115,33 @@ describe('M1 spine: full path intake → closeout', () => {
 
     // ── Step 8: Engagement → Closeout ─────────────────────────────────────
     await startEngagement(engagement.id, admin.id)
-    await submitDeliverable(engagement.id, null, 'Deliverable complete.', consultantUser.id)
-    await beginReview(engagement.id, admin.id)
+
+    // Submit deliverable with notes (new M6 signature)
+    const { submitDeliverable: submitDel, createFeedback } = await import('@/modules/deliverables/service')
+    const deliverable = await submitDel(engagement.id, null, 'Completed the full analysis report as scoped.', admin.id)
+    expect(deliverable.status).toBe('SUBMITTED')
+
+    let eng = await prisma.engagement.findUniqueOrThrow({ where: { id: engagement.id } })
+    expect(eng.status).toBe('DELIVERABLE_SUBMITTED')
+
+    // Simulate QA completing (avoid live AI call in spine; tested in deliverables.test.ts)
+    await prisma.deliverable.update({
+      where: { id: deliverable.id },
+      data: { aiQaRunAt: new Date(), aiQaNotes: 'Looks good.', aiQaRiskFlag: false },
+    })
+    await prisma.engagement.update({ where: { id: engagement.id }, data: { status: 'UNDER_REVIEW' } })
+
     await acceptEngagement(engagement.id, admin.id)
     await closeEngagement(engagement.id, admin.id)
 
     const closedEngagement = await prisma.engagement.findUniqueOrThrow({ where: { id: engagement.id } })
     expect(closedEngagement.status).toBe('CLOSED')
+
+    // Feedback from both parties
+    await createFeedback(engagement.id, clientUser.id, 'client', 5, true, 'Excellent.')
+    await createFeedback(engagement.id, consultantUser.id, 'consultant', 5, true, 'Great client.')
+    const feedbacks = await prisma.feedback.findMany({ where: { engagementId: engagement.id } })
+    expect(feedbacks).toHaveLength(2)
 
     project = await prisma.project.findUniqueOrThrow({ where: { id: project.id } })
     expect(project.status).toBe('CLOSED')
