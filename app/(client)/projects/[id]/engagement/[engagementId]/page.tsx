@@ -25,6 +25,7 @@ export default async function ClientEngagementDetailPage({ params }: { params: P
       communications: { orderBy: { createdAt: 'asc' } },
       project: true,
       feedbacks: { where: { submittedBy: user.id } },
+      paymentRecord: { select: { amount: true, paymentStatus: true } },
     },
   })
   if (!engagement) notFound()
@@ -50,6 +51,16 @@ export default async function ClientEngagementDetailPage({ params }: { params: P
           <div><dt className="text-slate-500">Due date</dt><dd className="text-slate-900 mt-0.5">{engagement.scope.dueDate.toLocaleDateString()}</dd></div>
         </dl>
       </div>
+
+      {engagement.paymentRecord && (
+        <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-2 text-sm">
+          <h2 className="font-semibold text-slate-700">Payment</h2>
+          <div className="flex gap-6">
+            <div><p className="text-slate-500">Amount</p><p className="font-medium">${engagement.paymentRecord.amount.toString()}</p></div>
+            <div><p className="text-slate-500">Status</p><p className="font-medium">{engagement.paymentRecord.paymentStatus}</p></div>
+          </div>
+        </div>
+      )}
 
       {latestDeliverable && (
         <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-4">
