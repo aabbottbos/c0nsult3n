@@ -439,6 +439,9 @@ model AdminTask {
   reason        String
   resolved      Boolean  @default(false)
   createdAt     DateTime @default(now())
+
+  @@index([engagementId])
+  @@index([deliverableId])
 }
 
 model ScopingMatrixClassification {
