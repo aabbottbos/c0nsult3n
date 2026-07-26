@@ -1,6 +1,6 @@
 # Consulten — Handoff Context
 
-Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M5 complete). Update this file when milestone status changes or decisions are reversed.
+Current state of the build as of 2026-07-26. Last updated 2026-07-26 (M6 complete). Update this file when milestone status changes or decisions are reversed.
 
 ---
 
@@ -15,6 +15,7 @@ Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M5 complet
 | M3 | ✅ Complete | Email notifications (Resend), file uploads (Vercel Blob), removed /debug page, tsconfig path fix, test teardown fix. Vercel deploy still blocked (separate). |
 | M4 | ✅ Complete | Matching pipeline (eligibility filter + AI assessment), admin matching workspace, addCandidateWithAI service function, invitation dispatch from shortlist detail. 16/16 tests. |
 | M5 | ✅ Complete | Proposal deviation gate (PENDING_ADMIN_REVIEW), consultant selection → engagement auto-creation, sibling NOT_SELECTED, withdraw, admin deviation review UI, consultant deviation fields. 21/21 tests. |
+| M6 | ✅ Complete | Delivery workflow, AI QA on deliverables, structured comms (CommunicationType enum), revision cycle, closeout, client+consultant feedback. 31/31 tests. |
 
 ---
 
@@ -28,20 +29,21 @@ Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M5 complet
 - Event log at `/events` and on each detail page
 - **M4: Admin matching workspace** at `/admin/projects/[id]/matching` — "Run Matching" button runs eligibility filter + AI assessment, shows eligible consultants with AI tier badges, per-consultant "Add to Shortlist" button
 - **M4: Invitation dispatch** — "Invite" button on shortlist detail (status `ADMIN_REVIEW`/`CLIENT_VISIBLE`/`UPDATED`) creates and sends invitation with 14-day deadline
+- **M6: Engagement detail** — deliverable card with consultant notes, AI QA notes, risk flag badge (amber); "Mark Resolved" button for AdminTask when `aiQaRiskFlag === true`; revision request edit form (in-scope checkbox + due date); full comms thread with send form; "Close Engagement" button when `ACCEPTED`
 
 ### Client portal (`/projects`, `/projects/new`, `/projects/[id]`, `/projects/[id]/engagement/[engagementId]`)
 - Sign up via `/sign-up` → role selector → webhook assigns role, creates org + contact
 - Sidebar lists the client's projects with stage badges and action dots
 - New project form → auto-submits on create
 - Project detail is stage-aware: shows scope for review, shortlist with rationale + proposal select, engagement card, etc.
-- Engagement detail shows scope summary, deliverable with Accept/Request Revision buttons when status is `UNDER_REVIEW`
+- **M6: Engagement detail** — deliverable with consultant notes + AI QA notes (auto-exposed); Accept button blocked with amber message when `aiQaRiskFlag === true`; revision form with textarea reason; feedback form when `CLOSED` (satisfaction 1–5, repeat intent, comments); typed comms panel
 
 ### Consultant portal (`/invitations`, `/invitations/[id]`, `/engagements`, `/engagements/[id]`)
 - Sign up via `/sign-up` → role selector → webhook assigns role, creates consultant profile
 - Sidebar shows pending invitation badge count and links to Active Engagements
 - Invitation inbox with urgency coloring (red < 5 days, amber < 10 days to expiry)
 - Invitation detail shows full scope; proposal form visible only when status is `SENT/VIEWED/QUESTIONS_ASKED`
-- Engagement detail shows scope reminder, file upload form (only when `IN_PROGRESS`), submitted deliverables list with Blob URL links
+- **M6: Engagement detail** — submit form with file upload + consultant notes textarea (when `IN_PROGRESS`); AI QA status (running/complete with notes); resubmit form linked to open RevisionRequest (when `REVISION_REQUESTED`); feedback form when `CLOSED`; typed comms panel
 
 ### Auth + routing
 - `/sign-up` — two-step Clerk flow: credentials (email + password), then role selector (client / consultant). Uses Clerk v7 `SignUpFutureResource` API.
@@ -49,11 +51,14 @@ Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M5 complet
 - `proxy.ts` — public paths: `/sign-in`, `/sign-up`, `/api/webhooks`, `/api/clerk`. Role-based redirect at `/`: client → `/projects`, consultant → `/invitations`, admin → `/dashboard`
 
 ### Tests
-- `tests/spine.test.ts` — M1 full happy-path spine (5 tests) + M2 permission invariants (4 tests): client org isolation, consultant invitation isolation, webhook role assignment for both roles
+- `tests/spine.test.ts` — M1 full happy-path spine (5 tests) + M2 permission invariants (4 tests): client org isolation, consultant invitation isolation, webhook role assignment for both roles. Extended in M6 to cover submitDeliverable (with notes), QA simulation, accept, close, and dual-party feedback.
 - `tests/file-upload.test.ts` — file upload: mocks `@vercel/blob` `put()`, verifies `Deliverable.fileUrl` stored and engagement transitions to `DELIVERABLE_SUBMITTED`
 - `tests/matching.test.ts` — M4 matching tests (4 tests: includes eligible, excludes restricted, excludes non-approved/non-published, aiFitTier stored on candidate) + M4 permission invariants (2 tests: createInvitation FK enforcement, client field projection)
 - `tests/proposals.test.ts` — M5 proposal tests (5 tests: deviation gate, deviations approved → SUBMITTED → engagement created, no-deviation SUBMITTED, withdraw, sibling NOT_SELECTED + single engagement)
-- 21/21 tests pass against the real Neon dev DB
+- `tests/deliverables.test.ts` — M6 (5 tests): submitDeliverable, runAiQa, AI QA risk flag → AdminTask → block → resolve → accept, no-flag accept, resubmitDeliverable
+- `tests/closeout.test.ts` — M6 (3 tests): ACCEPTED→CLOSED dual feedback, duplicate upsert, invalid close throws
+- `tests/communications.test.ts` — M6 (2 tests): sendMessage with CommunicationType, cross-engagement isolation
+- 31/31 tests pass against the real Neon dev DB
 
 ### M5: Proposal, selection, engagement
 - Consultant proposal form: fit statement + optional deviation fields (fee/timing/deliverable). If deviations present, proposal enters `PENDING_ADMIN_REVIEW` instead of `SUBMITTED`.
@@ -76,7 +81,7 @@ Current state of the build as of 2026-07-23. Last updated 2026-07-23 (M5 complet
 | Clerk | Dev instance `cheerful-lark-30`; app ID `app_3GsuSFLVS2W9tnmFIaS797VVPyK`; webhook route at `/api/webhooks/clerk` |
 | Sentry | Configured in `sentry.*.config.ts`; DSN in `.env.local` |
 | Anthropic | `ANTHROPIC_API_KEY` in `.env.local`; model `claude-sonnet-4-6`; wrapper at `lib/ai.ts` |
-| Resend | `RESEND_API_KEY` in `.env.local` + Vercel env vars; FROM `Consulten <noreply@consulten.co>`; wrapper at `lib/email.ts` — 4 triggers: invitation sent, proposal selected, engagement started, deliverable submitted |
+| Resend | `RESEND_API_KEY` in `.env.local` + Vercel env vars; FROM `Consulten <noreply@consulten.co>`; wrapper at `lib/email.ts` — 8 triggers: invitation sent, proposal selected, engagement started, deliverable submitted (consultant+admin), AI QA complete (client), revision requested (consultant), engagement closed (client+consultant) |
 | Vercel Blob | `BLOB_READ_WRITE_TOKEN` in `.env.local` + Vercel env vars; public access; blob keys prefixed `{engagementId}/{filename}`; 10mb body limit in `next.config.ts` |
 
 **Database connection string** (pooled, for app + tests):
@@ -139,6 +144,16 @@ Roles are set via `publicMetadata.role`. The proxy at `proxy.ts` (Next.js 16 ren
 - **`modules/shortlists/service.ts` — `addCandidateWithAI`** — idempotent addCandidate that also stores `aiFitTier` and `aiFitRationale`. Has `findFirst` guard to prevent duplicates.
 - **`AIOutputLog`** — logs every Claude call: model, prompt, output, action type, entity reference. Written by both AI admin actions.
 - **`modules/restrictions/service.ts`** — `isEligible(consultantId)` enforces SPEC §6.3.
+- **M6 schema additions:**
+  - `CommunicationType` enum: `CLARIFICATION | DOCUMENT_REQUEST | REVISION_RESPONSE | ISSUE_FLAG`. `EngagementCommunication.messageType` is now this enum (was `String`).
+  - `Deliverable` M6 fields: `consultantNotes String?`, `aiQaNotes String?`, `aiQaRiskFlag Boolean @default(false)`, `aiQaRunAt DateTime?`, `revisionRequestId String?` (FK to RevisionRequest, named relations `"ResubmitDeliverable"` and `"DeliverableRevisions"`).
+  - `RevisionRequest` M6 fields: `inScopeConfirmation Boolean @default(true)`, `dueDate DateTime?`.
+  - `Feedback` model: `engagementId`, `submittedBy` (userId), `role` (Role), `satisfaction Int`, `repeatIntent Boolean`, `comments String?`, `@@unique([engagementId, submittedBy])`.
+  - `AdminTask` fleshed out: `engagementId String?`, `deliverableId String?`, `reason String`, `resolved Boolean @default(false)`, `@@index([engagementId])`, `@@index([deliverableId])`.
+- **M6 services:**
+  - `modules/deliverables/service.ts` — `submitDeliverable(engagementId, fileUrl, consultantNotes, actorId)`, `resubmitDeliverable(engagementId, revisionRequestId, fileUrl, consultantNotes, actorId)`, `runAiQa(deliverableId, actorId)` (calls Claude, writes QA fields, creates AdminTask on risk), `createFeedback(...)`.
+  - `modules/engagements/service.ts` — `acceptEngagement` guards against unresolved AdminTask when `aiQaRiskFlag === true`; `closeEngagement` sends close emails to both parties; `resolveAdminTask` added.
+  - `modules/communications/service.ts` — `messageType` is now `CommunicationType` (was `string`).
 
 ---
 
@@ -172,10 +187,10 @@ The `consulten` remote points to `https://github.com/aabbottbos/c0nsult3n.git`.
 
 ---
 
-## Next Work (M6)
+## Next Work (M7)
 
-M5 is complete. M6 spec is in `SPEC - Complete MVP A.md §4`.
+M6 is complete. Gate 6 verified: AI QA runs before acceptance, riskFlag creates AdminTask, client sees QA notes immediately, comms constrained to CommunicationType, feedback upserts after CLOSED.
 
 1. **Vercel deployment** (ongoing blocker) — Git integration rejects pushes due to email mismatch. See M4 notes.
-2. **M6: Delivery, communication, AI QA, closeout, feedback** — Deliverable submission workflow, structured communications, AI QA on deliverables, revision cycle, closeout, client feedback. Key entities: enhanced `Engagement` workspace (role-differentiated view), `EngagementCommunication` (already exists), AI QA output.
-3. **M5 known gaps** — (a) No duplicate-proposal guard (consultant can submit multiple proposals if invitation resets); (b) Withdrawn proposals don't update invitation status back; (c) `listProposals` admin page doesn't filter by status — all proposals shown including NOT_SELECTED/WITHDRAWN.
+2. **M7: Dispute flow, payment status, "Revision Due Soon" cron** — Deferred from M6. Requires cron infrastructure for revision deadline notifications.
+3. **M5/M6 known gaps** — (a) No duplicate-proposal guard (consultant can submit multiple proposals if invitation resets); (b) Withdrawn proposals don't update invitation status back; (c) `listProposals` admin page doesn't filter by status — all proposals shown including NOT_SELECTED/WITHDRAWN; (d) AI QA uses fire-and-forget — if Claude is unavailable, engagement stays in DELIVERABLE_SUBMITTED indefinitely (no retry or timeout).
