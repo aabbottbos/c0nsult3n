@@ -26,6 +26,7 @@ export default async function ConsultantEngagementDetailPage({ params }: { param
       communications: { orderBy: { createdAt: 'asc' } },
       revisionRequests: { where: { status: 'OPEN' }, orderBy: { createdAt: 'desc' }, take: 1 },
       feedbacks: { where: { submittedBy: user.id } },
+      paymentRecord: { select: { payoutAmount: true, payoutStatus: true } },
     },
   })
   if (!engagement) notFound()
@@ -54,6 +55,16 @@ export default async function ConsultantEngagementDetailPage({ params }: { param
           <div><dt className="text-slate-500">Due date</dt><dd className="text-slate-900 mt-0.5">{engagement.scope.dueDate.toLocaleDateString()}</dd></div>
         </dl>
       </div>
+
+      {engagement.paymentRecord && (
+        <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-2 text-sm">
+          <h2 className="font-semibold text-slate-700">Payout</h2>
+          <div className="flex gap-6">
+            <div><p className="text-slate-500">Payout amount</p><p className="font-medium">{engagement.paymentRecord.payoutAmount ? `$${engagement.paymentRecord.payoutAmount.toString()}` : 'TBD'}</p></div>
+            <div><p className="text-slate-500">Status</p><p className="font-medium">{engagement.paymentRecord.payoutStatus}</p></div>
+          </div>
+        </div>
+      )}
 
       {canSubmit && (
         <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-4">
