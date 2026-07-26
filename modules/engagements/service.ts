@@ -4,7 +4,7 @@ import { logEvent } from '@/modules/audit-events/service'
 import { markEngagementCreated, closeProject } from '@/modules/projects/service'
 import type { Role, EngagementStatus } from '@/app/generated/prisma'
 import { ENGAGEMENT_TRANSITIONS } from './types'
-import { sendProposalSelectedEmail, sendEngagementStartedEmail } from '@/lib/email'
+import { sendProposalSelectedEmail, sendEngagementStartedEmail, sendEngagementClosedEmail } from '@/lib/email'
 
 async function transition(engagementId: string, to: EngagementStatus, action: string, actorId: string, actorRole: Role) {
   return db.$transaction(async (tx: Tx) => {
@@ -78,13 +78,25 @@ export async function requestRevision(engagementId: string, actorId: string) {
 }
 
 export async function acceptEngagement(engagementId: string, actorId: string) {
-  const openTask = await db.adminTask.findFirst({ where: { engagementId, resolved: false } })
-  if (openTask) throw new Error('Acceptance blocked: unresolved admin task exists for this engagement')
+  const latestDeliverable = await db.deliverable.findFirst({
+    where: { engagementId },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (latestDeliverable?.aiQaRiskFlag) {
+    const openTask = await db.adminTask.findFirst({
+      where: { engagementId, deliverableId: latestDeliverable.id, resolved: false },
+    })
+    if (openTask) throw new Error('Acceptance blocked: AI QA risk flag requires admin review')
+  }
   return transition(engagementId, 'ACCEPTED', 'accept', actorId, 'client')
 }
 
-export async function resolveAdminTask(taskId: string, actorId: string) {
-  return db.adminTask.update({ where: { id: taskId }, data: { resolved: true } })
+export async function resolveAdminTask(adminTaskId: string, actorId: string) {
+  return db.$transaction(async (tx: Tx) => {
+    const task = await tx.adminTask.update({ where: { id: adminTaskId }, data: { resolved: true } })
+    await logEvent(tx, { entityType: 'AdminTask', entityId: adminTaskId, action: 'resolve', actorId, actorRole: 'admin' })
+    return task
+  })
 }
 
 export async function closeEngagement(engagementId: string, actorId: string) {
@@ -98,7 +110,34 @@ export async function closeEngagement(engagementId: string, actorId: string) {
 
   await closeProject(eng.projectId, actorId)
 
-  return db.engagement.findUniqueOrThrow({ where: { id: engagementId } })
+  const full = await db.engagement.findUniqueOrThrow({
+    where: { id: engagementId },
+    include: {
+      consultant: { include: { user: true } },
+      project: { include: { client: { include: { contacts: true } } } },
+    },
+  })
+  const clientContact = full.project.client.contacts[0]
+  if (clientContact) {
+    await sendEngagementClosedEmail({
+      email: clientContact.email,
+      name: clientContact.name,
+      projectTitle: full.project.title,
+      engagementId,
+      projectId: full.projectId,
+      role: 'client',
+    })
+  }
+  await sendEngagementClosedEmail({
+    email: full.consultant.user.email,
+    name: full.consultant.user.email,
+    projectTitle: full.project.title,
+    engagementId,
+    projectId: full.projectId,
+    role: 'consultant',
+  })
+
+  return full
 }
 
 export async function cancelEngagement(engagementId: string, actorId: string) {
