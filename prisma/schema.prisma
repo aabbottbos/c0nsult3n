@@ -117,6 +117,13 @@ enum RevisionRequestStatus {
   WITHDRAWN
 }
 
+enum CommunicationType {
+  CLARIFICATION
+  DOCUMENT_REQUEST
+  REVISION_RESPONSE
+  ISSUE_FLAG
+}
+
 // ─── Auth & People ──────────────────────────────────────────────────────────
 
 model User {
@@ -306,33 +313,43 @@ model Engagement {
   deliverables     Deliverable[]
   revisionRequests RevisionRequest[]
   communications   EngagementCommunication[]
+  feedbacks        Feedback[]
 }
 
 model Deliverable {
-  id           String            @id @default(cuid())
-  engagementId String
-  status       DeliverableStatus @default(PENDING)
-  submittedAt  DateTime?
-  fileUrl      String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id                String            @id @default(cuid())
+  engagementId      String
+  status            DeliverableStatus @default(PENDING)
+  consultantNotes   String?
+  aiQaNotes         String?
+  aiQaRiskFlag      Boolean           @default(false)
+  aiQaRunAt         DateTime?
+  revisionRequestId String?
+  submittedAt       DateTime?
+  fileUrl           String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
-  engagement       Engagement      @relation(fields: [engagementId], references: [id])
-  revisionRequests RevisionRequest[]
+  engagement       Engagement       @relation(fields: [engagementId], references: [id])
+  revisionRequest  RevisionRequest? @relation("ResubmitDeliverable", fields: [revisionRequestId], references: [id])
+  revisionRequests RevisionRequest[] @relation("DeliverableRevisions")
 }
 
 model RevisionRequest {
-  id           String                @id @default(cuid())
-  engagementId String
-  deliverableId String
-  requestedBy  String
-  reason       String
-  status       RevisionRequestStatus @default(OPEN)
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
+  id                  String                @id @default(cuid())
+  engagementId        String
+  deliverableId       String
+  requestedBy         String
+  reason              String
+  inScopeConfirmation Boolean               @default(true)
+  dueDate             DateTime?
+  status              RevisionRequestStatus @default(OPEN)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
 
-  engagement  Engagement  @relation(fields: [engagementId], references: [id])
-  deliverable Deliverable @relation(fields: [deliverableId], references: [id])
+  engagement    Engagement    @relation(fields: [engagementId], references: [id])
+  deliverable   Deliverable   @relation("DeliverableRevisions", fields: [deliverableId], references: [id])
+  resubmissions Deliverable[] @relation("ResubmitDeliverable")
 }
 
 model EngagementCommunication {
@@ -340,13 +357,28 @@ model EngagementCommunication {
   engagementId String
   senderId     String
   senderRole   Role
-  messageType  String
+  messageType  CommunicationType
   body         String
   createdAt    DateTime @default(now())
 
   engagement Engagement @relation(fields: [engagementId], references: [id])
 
   @@index([engagementId])
+}
+
+model Feedback {
+  id           String   @id @default(cuid())
+  engagementId String
+  submittedBy  String
+  role         Role
+  satisfaction Int
+  repeatIntent Boolean
+  comments     String?
+  createdAt    DateTime @default(now())
+
+  engagement Engagement @relation(fields: [engagementId], references: [id])
+
+  @@unique([engagementId, submittedBy])
 }
 
 // ─── Cross-cutting ──────────────────────────────────────────────────────────
@@ -401,8 +433,12 @@ model Notification {
 }
 
 model AdminTask {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  engagementId  String?
+  deliverableId String?
+  reason        String
+  resolved      Boolean  @default(false)
+  createdAt     DateTime @default(now())
 }
 
 model ScopingMatrixClassification {
