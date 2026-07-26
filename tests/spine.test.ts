@@ -8,8 +8,8 @@ import { createScope, moveToAdminReview, approveScope, confirmScope } from '@/mo
 import { createShortlist, addCandidate, submitForAdminReview, makeClientVisible } from '@/modules/shortlists/service'
 import { createInvitation, sendInvitation, acceptInterest } from '@/modules/invitations/service'
 import { createProposal, selectProposal } from '@/modules/proposals/service'
-import { startEngagement, submitDeliverable, beginReview, acceptEngagement, closeEngagement } from '@/modules/engagements/service'
-import { createDeliverable } from '@/modules/deliverables/service'
+import { startEngagement, beginReview, acceptEngagement, closeEngagement } from '@/modules/engagements/service'
+import { submitDeliverable } from '@/modules/deliverables/service'
 
 
 describe('M1 spine: full path intake → closeout', () => {
@@ -116,8 +116,7 @@ describe('M1 spine: full path intake → closeout', () => {
 
     // ── Step 8: Engagement → Closeout ─────────────────────────────────────
     await startEngagement(engagement.id, admin.id)
-    await createDeliverable(engagement.id, consultantUser.id)
-    await submitDeliverable(engagement.id, admin.id)
+    await submitDeliverable(engagement.id, null, 'Deliverable complete.', consultantUser.id)
     await beginReview(engagement.id, admin.id)
     await acceptEngagement(engagement.id, admin.id)
     await closeEngagement(engagement.id, admin.id)

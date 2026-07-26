@@ -78,7 +78,13 @@ export async function requestRevision(engagementId: string, actorId: string) {
 }
 
 export async function acceptEngagement(engagementId: string, actorId: string) {
+  const openTask = await db.adminTask.findFirst({ where: { engagementId, resolved: false } })
+  if (openTask) throw new Error('Acceptance blocked: unresolved admin task exists for this engagement')
   return transition(engagementId, 'ACCEPTED', 'accept', actorId, 'client')
+}
+
+export async function resolveAdminTask(taskId: string, actorId: string) {
+  return db.adminTask.update({ where: { id: taskId }, data: { resolved: true } })
 }
 
 export async function closeEngagement(engagementId: string, actorId: string) {
