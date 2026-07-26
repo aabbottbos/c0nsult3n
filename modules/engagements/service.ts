@@ -88,6 +88,10 @@ export async function acceptEngagement(engagementId: string, actorId: string) {
     })
     if (openTask) throw new Error('Acceptance blocked: AI QA risk flag requires admin review')
   }
+  const openDispute = await db.dispute.findFirst({
+    where: { engagementId, adminReviewStatus: { in: ['OPENED', 'UNDER_ADMIN_REVIEW', 'PROPOSED_RESOLUTION'] } },
+  })
+  if (openDispute) throw new Error('Acceptance blocked: open dispute must be resolved first')
   return transition(engagementId, 'ACCEPTED', 'accept', actorId, 'client')
 }
 
