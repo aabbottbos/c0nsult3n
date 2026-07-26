@@ -18,7 +18,7 @@ export default async function ClientEngagementDetailPage({ params }: { params: P
   const contact = await db.clientContact.findUniqueOrThrow({ where: { userId: user.id } })
 
   const engagement = await db.engagement.findUnique({
-    where: { id: engagementId, clientId: contact.organizationId },
+    where: { id: engagementId, clientContactId: contact.id },
     include: {
       scope: true,
       deliverables: { orderBy: { createdAt: 'desc' } },

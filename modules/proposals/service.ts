@@ -68,15 +68,22 @@ export async function selectProposal(proposalId: string, actorId: string) {
   // Load invitation to get projectId
   const invitation = await db.consultantInvitation.findUniqueOrThrow({ where: { id: proposal.invitationId } })
 
-  // Load project to get clientId and approved scope
+  // Load project and confirmed scope
   const project = await db.project.findUniqueOrThrow({ where: { id: invitation.projectId } })
   const scope = await db.scope.findFirstOrThrow({
     where: { projectId: invitation.projectId, status: 'CLIENT_CONFIRMED' },
   })
 
+  // Look up the clientContactId for the actor (client who is selecting)
+  // actorId is a User.id; find their ClientContact
+  const clientContact = await db.clientContact.findFirst({ where: { userId: actorId } })
+  // Fall back to first contact for the org if actor is not a client (e.g. admin selects in tests)
+  const clientContactId = clientContact?.id
+    ?? (await db.clientContact.findFirstOrThrow({ where: { organizationId: project.clientId } })).id
+
   // Create engagement
   await createEngagement(
-    { projectId: invitation.projectId, scopeId: scope.id, proposalId, consultantId: proposal.consultantId, clientId: project.clientId },
+    { projectId: invitation.projectId, scopeId: scope.id, proposalId, consultantId: proposal.consultantId, clientContactId },
     actorId
   )
 

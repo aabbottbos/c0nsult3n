@@ -92,13 +92,17 @@ describe('file upload: deliverable fileUrl is stored', () => {
       },
     })
 
+    const clientContact = await prisma.clientContact.create({
+      data: { userId: clientUser.id, organizationId: org.id, name: 'FU2 Client', email: clientUser.email },
+    })
+
     const engagement = await prisma.engagement.create({
       data: {
         projectId: project.id,
         scopeId: scope.id,
         proposalId: proposal.id,
         consultantId: consultantProfile.id,
-        clientId: org.id,
+        clientContactId: clientContact.id,
         status: 'IN_PROGRESS',
       },
     })

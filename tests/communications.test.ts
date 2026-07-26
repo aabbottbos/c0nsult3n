@@ -20,7 +20,8 @@ async function buildEngagementShell() {
   const candidate = await prisma.shortlistCandidate.create({ data: { shortlistId: shortlist.id, consultantId: profile.id, addedBy: admin.id } })
   const invitation = await prisma.consultantInvitation.create({ data: { shortlistCandidateId: candidate.id, projectId: project.id, consultantId: profile.id } })
   const proposal = await prisma.proposal.create({ data: { invitationId: invitation.id, consultantId: profile.id, fitStatement: 'Fit.' } })
-  const engagement = await prisma.engagement.create({ data: { projectId: project.id, scopeId: scope.id, proposalId: proposal.id, consultantId: profile.id, clientId: org.id } })
+  const clientContactRec = await prisma.clientContact.findFirstOrThrow({ where: { organizationId: org.id } })
+  const engagement = await prisma.engagement.create({ data: { projectId: project.id, scopeId: scope.id, proposalId: proposal.id, consultantId: profile.id, clientContactId: clientContactRec.id } })
   return { admin, clientUser, consultantUser, org, profile, engagement }
 }
 
@@ -43,7 +44,8 @@ describe('M6 structured communications', () => {
     const candidate2 = await prisma.shortlistCandidate.create({ data: { shortlistId: shortlist2.id, consultantId: profile.id, addedBy: admin.id } })
     const invitation2 = await prisma.consultantInvitation.create({ data: { shortlistCandidateId: candidate2.id, projectId: project2.id, consultantId: profile.id } })
     const proposal2 = await prisma.proposal.create({ data: { invitationId: invitation2.id, consultantId: profile.id, fitStatement: 'Fit.' } })
-    const engagement2 = await prisma.engagement.create({ data: { projectId: project2.id, scopeId: scope2.id, proposalId: proposal2.id, consultantId: profile.id, clientId: org.id } })
+    const clientContactRec2 = await prisma.clientContact.findFirstOrThrow({ where: { organizationId: org.id } })
+    const engagement2 = await prisma.engagement.create({ data: { projectId: project2.id, scopeId: scope2.id, proposalId: proposal2.id, consultantId: profile.id, clientContactId: clientContactRec2.id } })
 
     await sendMessage(engagement2.id, admin.id, 'admin', 'ISSUE_FLAG', 'Issue on engagement 2.')
 

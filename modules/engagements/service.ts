@@ -17,7 +17,7 @@ async function transition(engagementId: string, to: EngagementStatus, action: st
 }
 
 export async function createEngagement(
-  data: { projectId: string; scopeId: string; proposalId: string; consultantId: string; clientId: string },
+  data: { projectId: string; scopeId: string; proposalId: string; consultantId: string; clientContactId: string },
   actorId: string
 ) {
   const engagement = await db.$transaction(async (tx: Tx) => {
@@ -27,20 +27,22 @@ export async function createEngagement(
   })
   await markEngagementCreated(data.projectId, actorId)
 
-  // Fire emails after transaction — failure must not roll back state
+  // Auto-create payment record using scope fee
+  const scope = await db.scope.findUniqueOrThrow({ where: { id: data.scopeId } })
+  const { createPaymentRecord } = await import('@/modules/payments/service')
+  await createPaymentRecord(engagement.id, Number(scope.fee), actorId)
+
+  // Fire emails after transaction
   const eng = await db.engagement.findUniqueOrThrow({
     where: { id: engagement.id },
     include: {
       consultant: { include: { user: true } },
-      project: {
-        include: {
-          client: { include: { contacts: true } },
-        },
-      },
+      clientContact: { include: { user: true } },
+      project: true,
     },
   })
 
-  const clientContact = eng.project.client.contacts[0]
+  const clientContact = eng.clientContact
 
   await sendProposalSelectedEmail({
     consultantEmail: eng.consultant.user.email,
@@ -118,14 +120,15 @@ export async function closeEngagement(engagementId: string, actorId: string) {
     where: { id: engagementId },
     include: {
       consultant: { include: { user: true } },
-      project: { include: { client: { include: { contacts: true } } } },
+      clientContact: true,
+      project: true,
     },
   })
-  const clientContact = full.project.client.contacts[0]
-  if (clientContact) {
+
+  if (full.clientContact) {
     await sendEngagementClosedEmail({
-      email: clientContact.email,
-      name: clientContact.name,
+      email: full.clientContact.email,
+      name: full.clientContact.name,
       projectTitle: full.project.title,
       engagementId,
       projectId: full.projectId,
