@@ -3,23 +3,25 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { requireRole } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { submitDeliverable } from '@/modules/engagements/service'
-import { logEvent } from '@/modules/audit-events/service'
-import { sendDeliverableSubmittedEmail } from '@/lib/email'
 import { put } from '@vercel/blob'
+import { submitDeliverable, resubmitDeliverable, runAiQa, createFeedback } from '@/modules/deliverables/service'
+import { sendMessage } from '@/modules/communications/service'
+import { sendDeliverableSubmittedAdminEmail } from '@/lib/email'
+import type { CommunicationType } from '@/app/generated/prisma'
 
-async function consultantProfileId() {
+async function consultantIds() {
   await requireRole('consultant')
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
   const user = await db.user.findUniqueOrThrow({ where: { clerkId: userId } })
   const profile = await db.consultantProfile.findUniqueOrThrow({ where: { userId: user.id } })
-  return profile.id
+  return { userId: user.id, profileId: profile.id }
 }
 
 export async function submitDeliverableAction(engagementId: string, formData: FormData) {
-  const profileId = await consultantProfileId()
+  const { userId } = await consultantIds()
   const file = formData.get('file') as File | null
+  const consultantNotes = (formData.get('consultantNotes') as string | null) ?? ''
 
   let fileUrl: string | null = null
   if (file && file.size > 0) {
@@ -27,36 +29,57 @@ export async function submitDeliverableAction(engagementId: string, formData: Fo
     fileUrl = blob.url
   }
 
-  await db.$transaction(async (tx) => {
-    const d = await tx.deliverable.create({
-      data: { engagementId, status: 'SUBMITTED', submittedAt: new Date(), fileUrl },
-    })
-    await logEvent(tx, { entityType: 'Deliverable', entityId: d.id, action: 'create', actorId: profileId, actorRole: 'consultant' })
-  })
+  const deliverable = await submitDeliverable(engagementId, fileUrl, consultantNotes, userId)
 
-  await submitDeliverable(engagementId, profileId)
+  // Fire AI QA and admin notification after state transition
+  runAiQa(deliverable.id, userId).catch(console.error)
 
-  // Fire email after state transition — failure must not block redirect
   const eng = await db.engagement.findUniqueOrThrow({
     where: { id: engagementId },
-    include: {
-      project: {
-        include: {
-          client: { include: { contacts: true } },
-        },
-      },
-    },
+    include: { project: true },
   })
-  const clientContact = eng.project.client.contacts[0]
-  if (clientContact) {
-    await sendDeliverableSubmittedEmail({
-      clientEmail: clientContact.email,
-      clientName: clientContact.name,
+  const adminUsers = await db.user.findMany({ where: { role: 'admin' } })
+  for (const adminUser of adminUsers) {
+    await sendDeliverableSubmittedAdminEmail({
+      adminEmail: adminUser.email,
       projectTitle: eng.project.title,
-      projectId: eng.projectId,
-      engagementId: eng.id,
+      engagementId,
     })
   }
 
+  redirect(`/engagements/${engagementId}`)
+}
+
+export async function resubmitDeliverableAction(engagementId: string, revisionRequestId: string, formData: FormData) {
+  const { userId } = await consultantIds()
+  const file = formData.get('file') as File | null
+  const consultantNotes = (formData.get('consultantNotes') as string | null) ?? ''
+
+  let fileUrl: string | null = null
+  if (file && file.size > 0) {
+    const blob = await put(`${engagementId}/${file.name}`, file, { access: 'public' })
+    fileUrl = blob.url
+  }
+
+  const deliverable = await resubmitDeliverable(engagementId, revisionRequestId, fileUrl, consultantNotes, userId)
+  runAiQa(deliverable.id, userId).catch(console.error)
+
+  redirect(`/engagements/${engagementId}`)
+}
+
+export async function sendMessageAction(engagementId: string, formData: FormData) {
+  const { userId } = await consultantIds()
+  const messageType = formData.get('messageType') as CommunicationType
+  const body = formData.get('body') as string
+  await sendMessage(engagementId, userId, 'consultant', messageType, body)
+  redirect(`/engagements/${engagementId}`)
+}
+
+export async function createFeedbackAction(engagementId: string, formData: FormData) {
+  const { userId } = await consultantIds()
+  const satisfaction = parseInt(formData.get('satisfaction') as string, 10)
+  const repeatIntent = formData.get('repeatIntent') === 'true'
+  const comments = (formData.get('comments') as string | null) || null
+  await createFeedback(engagementId, userId, 'consultant', satisfaction, repeatIntent, comments)
   redirect(`/engagements/${engagementId}`)
 }
