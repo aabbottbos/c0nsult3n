@@ -7,6 +7,10 @@ import { createProject, submitProject } from '@/modules/projects/service'
 import { confirmScope, requestClientChanges } from '@/modules/scopes/service'
 import { selectProposal } from '@/modules/proposals/service'
 import { acceptEngagement, requestRevision } from '@/modules/engagements/service'
+import { createRevisionRequest, createFeedback } from '@/modules/deliverables/service'
+import { sendMessage } from '@/modules/communications/service'
+import { sendRevisionRequestedEmail } from '@/lib/email'
+import type { CommunicationType } from '@/app/generated/prisma'
 
 async function dbUserId() {
   await requireRole('client')
@@ -47,13 +51,43 @@ export async function selectProposalAction(proposalId: string, projectId: string
 export async function acceptDeliverableAction(engagementId: string, projectId: string) {
   const uid = await dbUserId()
   await acceptEngagement(engagementId, uid)
-  redirect(`/projects/${projectId}`)
+  redirect(`/projects/${projectId}/engagement/${engagementId}`)
 }
 
-export async function requestRevisionAction(engagementId: string, deliverableId: string, reason: string, projectId: string) {
+export async function requestRevisionAction(engagementId: string, deliverableId: string, projectId: string, formData: FormData) {
   const uid = await dbUserId()
-  const { createRevisionRequest } = await import('@/modules/deliverables/service')
+  const reason = formData.get('reason') as string
   await createRevisionRequest(engagementId, deliverableId, reason, uid)
   await requestRevision(engagementId, uid)
-  redirect(`/projects/${projectId}`)
+
+  const eng = await db.engagement.findUniqueOrThrow({
+    where: { id: engagementId },
+    include: { consultant: { include: { user: true } }, project: true },
+  })
+  await sendRevisionRequestedEmail({
+    consultantEmail: eng.consultant.user.email,
+    consultantName: eng.consultant.user.email,
+    projectTitle: eng.project.title,
+    engagementId,
+    reason,
+  })
+
+  redirect(`/projects/${projectId}/engagement/${engagementId}`)
+}
+
+export async function sendMessageAction(engagementId: string, projectId: string, formData: FormData) {
+  const uid = await dbUserId()
+  const messageType = formData.get('messageType') as CommunicationType
+  const body = formData.get('body') as string
+  await sendMessage(engagementId, uid, 'client', messageType, body)
+  redirect(`/projects/${projectId}/engagement/${engagementId}`)
+}
+
+export async function createFeedbackAction(engagementId: string, projectId: string, formData: FormData) {
+  const uid = await dbUserId()
+  const satisfaction = parseInt(formData.get('satisfaction') as string, 10)
+  const repeatIntent = formData.get('repeatIntent') === 'true'
+  const comments = (formData.get('comments') as string | null) || null
+  await createFeedback(engagementId, uid, 'client', satisfaction, repeatIntent, comments)
+  redirect(`/projects/${projectId}/engagement/${engagementId}`)
 }
