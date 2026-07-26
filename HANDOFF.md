@@ -1,6 +1,6 @@
 # Consulten — Handoff Context
 
-Current state of the build as of 2026-07-26. Last updated 2026-07-26 (M6 complete). Update this file when milestone status changes or decisions are reversed.
+Current state of the build as of 2026-07-26. Last updated 2026-07-26 (M7 complete). Update this file when milestone status changes or decisions are reversed.
 
 ---
 
@@ -16,7 +16,7 @@ Current state of the build as of 2026-07-26. Last updated 2026-07-26 (M6 complet
 | M4 | ✅ Complete | Matching pipeline (eligibility filter + AI assessment), admin matching workspace, addCandidateWithAI service function, invitation dispatch from shortlist detail. 16/16 tests. |
 | M5 | ✅ Complete | Proposal deviation gate (PENDING_ADMIN_REVIEW), consultant selection → engagement auto-creation, sibling NOT_SELECTED, withdraw, admin deviation review UI, consultant deviation fields. 21/21 tests. |
 | M6 | ✅ Complete | Delivery workflow, AI QA on deliverables, structured comms (CommunicationType enum), revision cycle, closeout, client+consultant feedback. 31/31 tests. |
-| M7 | 🔄 In Progress | Dispute flow, payment status tracking. Design spec at `docs/superpowers/specs/2026-07-26-m7-disputes-payments-design.md`. |
+| M7 | ✅ Complete | Dispute flow, payment status tracking, clientContactId FK fix. 40/40 tests. |
 
 ---
 
@@ -31,6 +31,9 @@ Current state of the build as of 2026-07-26. Last updated 2026-07-26 (M6 complet
 - **M4: Admin matching workspace** at `/admin/projects/[id]/matching` — "Run Matching" button runs eligibility filter + AI assessment, shows eligible consultants with AI tier badges, per-consultant "Add to Shortlist" button
 - **M4: Invitation dispatch** — "Invite" button on shortlist detail (status `ADMIN_REVIEW`/`CLIENT_VISIBLE`/`UPDATED`) creates and sends invitation with 14-day deadline
 - **M6: Engagement detail** — deliverable card with consultant notes, AI QA notes, risk flag badge (amber); "Mark Resolved" button for AdminTask when `aiQaRiskFlag === true`; revision request edit form (in-scope checkbox + due date); full comms thread with send form; "Close Engagement" button when `ACCEPTED`
+- **M7: Engagement detail** — dispute panel (status badge, reason, AI summary snippet, link to `/admin/disputes/[id]`); "Open Dispute" inline form when no dispute exists and engagement is not terminal; payment panel (all fields displayed; paymentStatus/payoutStatus/adminNotes update form)
+- **M7: Disputes list** at `/admin/disputes` — list of disputes with status badge and link; nav link in admin sidebar
+- **M7: Dispute detail** at `/admin/disputes/[id]` — dispute reason, deliverable notes, comms thread, AI summary panel with "Summarize Dispute" trigger, resolve form (proposedResolution textarea + outcome select: Accept/Revision/Cancel)
 
 ### Client portal (`/projects`, `/projects/new`, `/projects/[id]`, `/projects/[id]/engagement/[engagementId]`)
 - Sign up via `/sign-up` → role selector → webhook assigns role, creates org + contact
@@ -38,6 +41,7 @@ Current state of the build as of 2026-07-26. Last updated 2026-07-26 (M6 complet
 - New project form → auto-submits on create
 - Project detail is stage-aware: shows scope for review, shortlist with rationale + proposal select, engagement card, etc.
 - **M6: Engagement detail** — deliverable with consultant notes + AI QA notes (auto-exposed); Accept button blocked with amber message when `aiQaRiskFlag === true`; revision form with textarea reason; feedback form when `CLOSED` (satisfaction 1–5, repeat intent, comments); typed comms panel
+- **M7: Payment status card** — shows `amount` and `paymentStatus` only (no platformFee or payout fields)
 
 ### Consultant portal (`/invitations`, `/invitations/[id]`, `/engagements`, `/engagements/[id]`)
 - Sign up via `/sign-up` → role selector → webhook assigns role, creates consultant profile
@@ -45,6 +49,7 @@ Current state of the build as of 2026-07-26. Last updated 2026-07-26 (M6 complet
 - Invitation inbox with urgency coloring (red < 5 days, amber < 10 days to expiry)
 - Invitation detail shows full scope; proposal form visible only when status is `SENT/VIEWED/QUESTIONS_ASKED`
 - **M6: Engagement detail** — submit form with file upload + consultant notes textarea (when `IN_PROGRESS`); AI QA status (running/complete with notes); resubmit form linked to open RevisionRequest (when `REVISION_REQUESTED`); feedback form when `CLOSED`; typed comms panel
+- **M7: Payout status card** — shows `payoutAmount` (or "TBD" if null) and `payoutStatus` only (no amount or payment fields)
 
 ### Auth + routing
 - `/sign-up` — two-step Clerk flow: credentials (email + password), then role selector (client / consultant). Uses Clerk v7 `SignUpFutureResource` API.
@@ -59,7 +64,10 @@ Current state of the build as of 2026-07-26. Last updated 2026-07-26 (M6 complet
 - `tests/deliverables.test.ts` — M6 (5 tests): submitDeliverable, runAiQa, AI QA risk flag → AdminTask → block → resolve → accept, no-flag accept, resubmitDeliverable
 - `tests/closeout.test.ts` — M6 (3 tests): ACCEPTED→CLOSED dual feedback, duplicate upsert, invalid close throws
 - `tests/communications.test.ts` — M6 (2 tests): sendMessage with CommunicationType, cross-engagement isolation
-- 31/31 tests pass against the real Neon dev DB
+- `tests/disputes.test.ts` — M7 (5 tests): openDispute→DISPUTED+EventLog, resolveDispute ACCEPTED, resolveDispute CANCELLED, acceptEngagement blocked by open dispute, generateAiDisputeSummary writes AIOutputLog with exposed:false
+- `tests/payments.test.ts` — M7 (4 tests): payment record auto-created with scope fee, updatePaymentStatus+EventLog, client field projection (no platformFee), consultant field projection (no amount/paymentStatus)
+- 40/40 tests pass against the real Neon dev DB
+- Test setup uses atomic `TRUNCATE ... CASCADE` in both `beforeEach` and `afterEach` (replaces 21-step sequential `deleteMany` chain that was vulnerable to partial failures on Neon connection drops)
 
 ### M5: Proposal, selection, engagement
 - Consultant proposal form: fit statement + optional deviation fields (fee/timing/deliverable). If deviations present, proposal enters `PENDING_ADMIN_REVIEW` instead of `SUBMITTED`.
@@ -155,6 +163,19 @@ Roles are set via `publicMetadata.role`. The proxy at `proxy.ts` (Next.js 16 ren
   - `modules/deliverables/service.ts` — `submitDeliverable(engagementId, fileUrl, consultantNotes, actorId)`, `resubmitDeliverable(engagementId, revisionRequestId, fileUrl, consultantNotes, actorId)`, `runAiQa(deliverableId, actorId)` (calls Claude, writes QA fields, creates AdminTask on risk), `createFeedback(...)`.
   - `modules/engagements/service.ts` — `acceptEngagement` guards against unresolved AdminTask when `aiQaRiskFlag === true`; `closeEngagement` sends close emails to both parties; `resolveAdminTask` added.
   - `modules/communications/service.ts` — `messageType` is now `CommunicationType` (was `string`).
+- **M7 schema additions:**
+  - `Engagement.clientId String` → `Engagement.clientContactId String` + FK to `ClientContact`. `ClientContact` gains `engagements Engagement[]` back-relation.
+  - `Dispute` model: full model replacing the stub — `engagementId @unique`, `openedBy` (userId), `disputeReason`, `issueSummary?`, `aiDisputeSummary?`, `adminReviewStatus DisputeStatus`, `proposedResolution?`, `finalResolution?`, `resultingStatus EngagementStatus?`, `closedAt?`, timestamps.
+  - `DisputeStatus` enum: `OPENED | UNDER_ADMIN_REVIEW | PROPOSED_RESOLUTION | RESOLVED | CLOSED`.
+  - `PaymentTransactionRecord` model: `engagementId @unique`, `amount Decimal(10,2)`, `platformFee?`, `payoutAmount?`, `paymentStatus PaymentStatus`, `payoutStatus PayoutStatus`, `paymentDueDate?`, `adminNotes?`, timestamps.
+  - `PaymentStatus` enum: `NOT_REQUIRED_YET | AUTHORIZATION_PENDING | AUTHORIZED | PAYMENT_FAILED | PAYMENT_CONFIRMED | RELEASE_PENDING | RELEASED | REFUNDED | DISPUTED`.
+  - `PayoutStatus` enum: `PENDING | RELEASE_PENDING | RELEASED | ON_HOLD | REFUNDED`.
+  - `DISPUTED` engagement transitions added: `DISPUTED → ACCEPTED | REVISION_REQUESTED | CANCELLED`.
+- **M7 services:**
+  - `modules/disputes/service.ts` — `openDispute(engagementId, openedBy, disputeReason)` (creates Dispute, transitions engagement to DISPUTED, logs event); `generateAiDisputeSummary(disputeId, actorId)` (calls Claude, writes AIOutputLog with `exposed: false`, updates `aiDisputeSummary`); `resolveDispute(disputeId, proposedResolution, outcome, actorId)` (transitions engagement to ACCEPTED/REVISION_REQUESTED/CANCELLED, closes dispute); `listDisputes()`, `getDispute(id)`.
+  - `modules/payments/service.ts` — `createPaymentRecord(engagementId, amount, actorId)` (auto-called by `createEngagement` after transaction, using scope fee); `updatePaymentStatus(engagementId, paymentStatus, payoutStatus, adminNotes, actorId)` (admin-only, logs event); `getPaymentRecord(engagementId)`.
+  - `modules/engagements/service.ts` — `acceptEngagement` gains second guard: rejects if open `Dispute` exists (status OPENED/UNDER_ADMIN_REVIEW/PROPOSED_RESOLUTION); `createEngagement` signature changed `clientId` → `clientContactId`.
+  - `modules/proposals/service.ts` — `selectProposal` looks up `ClientContact` by `userId` to pass `clientContactId` to `createEngagement`; falls back to org's first contact for admin actor in tests.
 
 ---
 
@@ -188,28 +209,24 @@ The `consulten` remote points to `https://github.com/aabbottbos/c0nsult3n.git`.
 
 ---
 
-## Next Work (M7)
+## Known Gaps / Intentional Deferrals (M7)
 
-M7 is in progress. Design spec approved: `docs/superpowers/specs/2026-07-26-m7-disputes-payments-design.md`.
-
-### M7 Scope (minimal viable)
-- **Disputes:** Client `ISSUE_FLAG` comm → admin escalates to `Dispute` record → engagement enters `DISPUTED` → admin resolves (accept / revise / cancel) → terminal state. AI dispute summary (admin-only, gated). New module: `modules/disputes/service.ts`.
-- **Payment status:** `PaymentTransactionRecord` with core financial fields (`amount`, `platformFee`, `payoutAmount`, `paymentStatus`, `payoutStatus`, `paymentDueDate`, `adminNotes`). Admin sets status manually. Client sees `amount` + `paymentStatus`; consultant sees `payoutAmount` + `payoutStatus`; admin sees all. Auto-created at engagement creation (amount = scope fee). New module: `modules/payments/service.ts`.
-- **Engagement schema fix:** `clientId` (bare string) → `clientContactId` (FK to `ClientContact`). Destructive dev-DB migration acceptable — no prod data.
-- **New enums:** `DisputeStatus`, `PaymentStatus`, `PayoutStatus`.
-- **No cron, no hardening sprint, no Stripe webhooks.**
-
-### M7 Intentional deferrals
 - "Revision Due Soon" cron — requires cron infrastructure, deferred post-M7.
 - Hardening sprint (permission test sweep, admin queue surfaces, EventLog audit coverage) — deferred post-M7.
 - Client-facing dispute UI — clients see engagement status change only; admin owns dispute workflow.
 - `ConsultantPayoutSetup` expansion — deferred.
-
-### Known gaps (carried from M5/M6)
 - No duplicate-proposal guard (consultant can submit multiple proposals if invitation resets).
 - Withdrawn proposals don't update invitation status back.
 - `listProposals` admin page doesn't filter by status — all proposals shown including NOT_SELECTED/WITHDRAWN.
 - AI QA is fire-and-forget — if Claude is unavailable, engagement stays in `DELIVERABLE_SUBMITTED` indefinitely (no retry or timeout).
-
-### Other
 - **Vercel deployment** (ongoing blocker) — Git integration rejects pushes due to email mismatch between Vercel team member and GitHub account `aabbottbos`. CLI deploys fail with DNS errors.
+
+---
+
+## Next Work (M8 — TBD)
+
+M7 is complete. M8 scope not yet defined. Candidates:
+- Hardening sprint: permission test sweep, admin queue surfaces, EventLog audit UI
+- Vercel deployment fix
+- Stripe/payment provider integration (MVP B milestone)
+- Cron: "Revision Due Soon" notifications
