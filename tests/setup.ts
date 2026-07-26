@@ -16,6 +16,8 @@ afterEach(async () => {
   await prisma.revisionRequest.deleteMany()
   await prisma.deliverable.deleteMany()
   await prisma.engagementCommunication.deleteMany()
+  await prisma.dispute.deleteMany()
+  await prisma.paymentTransactionRecord.deleteMany()
   await prisma.engagement.deleteMany()
   await prisma.proposal.deleteMany()
   await prisma.consultantInvitation.deleteMany()
