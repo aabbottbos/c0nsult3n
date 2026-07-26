@@ -124,6 +124,34 @@ enum CommunicationType {
   ISSUE_FLAG
 }
 
+enum DisputeStatus {
+  OPENED
+  UNDER_ADMIN_REVIEW
+  PROPOSED_RESOLUTION
+  RESOLVED
+  CLOSED
+}
+
+enum PaymentStatus {
+  NOT_REQUIRED_YET
+  AUTHORIZATION_PENDING
+  AUTHORIZED
+  PAYMENT_FAILED
+  PAYMENT_CONFIRMED
+  RELEASE_PENDING
+  RELEASED
+  REFUNDED
+  DISPUTED
+}
+
+enum PayoutStatus {
+  PENDING
+  RELEASE_PENDING
+  RELEASED
+  ON_HOLD
+  REFUNDED
+}
+
 // ─── Auth & People ──────────────────────────────────────────────────────────
 
 model User {
@@ -161,6 +189,7 @@ model ClientContact {
 
   user         User               @relation(fields: [userId], references: [id])
   organization ClientOrganization @relation(fields: [organizationId], references: [id])
+  engagements  Engagement[]
 }
 
 model ConsultantProfile {
@@ -296,24 +325,27 @@ model Proposal {
 }
 
 model Engagement {
-  id           String           @id @default(cuid())
-  projectId    String
-  scopeId      String
-  proposalId   String
-  consultantId String
-  clientId     String
-  status       EngagementStatus @default(PENDING_START)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id              String           @id @default(cuid())
+  projectId       String
+  scopeId         String
+  proposalId      String
+  consultantId    String
+  clientContactId String
+  status          EngagementStatus @default(PENDING_START)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   project          Project                  @relation(fields: [projectId], references: [id])
   scope            Scope                    @relation(fields: [scopeId], references: [id])
   proposal         Proposal                 @relation(fields: [proposalId], references: [id])
   consultant       ConsultantProfile        @relation(fields: [consultantId], references: [id])
+  clientContact    ClientContact            @relation(fields: [clientContactId], references: [id])
   deliverables     Deliverable[]
   revisionRequests RevisionRequest[]
   communications   EngagementCommunication[]
   feedbacks        Feedback[]
+  dispute          Dispute?
+  paymentRecord    PaymentTransactionRecord?
 }
 
 model Deliverable {
@@ -423,8 +455,37 @@ model LegalAcceptanceRecord {
 // ─── Present in schema, empty in M1 ────────────────────────────────────────
 
 model Dispute {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
+  id                 String            @id @default(cuid())
+  engagementId       String            @unique
+  openedBy           String
+  disputeReason      String
+  issueSummary       String?
+  aiDisputeSummary   String?
+  adminReviewStatus  DisputeStatus     @default(OPENED)
+  proposedResolution String?
+  finalResolution    String?
+  resultingStatus    EngagementStatus?
+  closedAt           DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  engagement Engagement @relation(fields: [engagementId], references: [id])
+}
+
+model PaymentTransactionRecord {
+  id             String        @id @default(cuid())
+  engagementId   String        @unique
+  amount         Decimal       @db.Decimal(10, 2)
+  platformFee    Decimal?      @db.Decimal(10, 2)
+  payoutAmount   Decimal?      @db.Decimal(10, 2)
+  paymentStatus  PaymentStatus @default(NOT_REQUIRED_YET)
+  payoutStatus   PayoutStatus  @default(PENDING)
+  paymentDueDate DateTime?
+  adminNotes     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  engagement Engagement @relation(fields: [engagementId], references: [id])
 }
 
 model Notification {
