@@ -18,6 +18,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <a href="/admin/invitations" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Invitations</a>
           <a href="/proposals" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Proposals</a>
           <a href="/admin/engagements" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Engagements</a>
+          <a href="/admin/disputes" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Disputes</a>
           <a href="/deliverables" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Deliverables</a>
           <p className="px-3 pt-3 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-widest">People</p>
           <a href="/clients" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Clients</a>
