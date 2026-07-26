@@ -97,3 +97,89 @@ ${APP_URL}/projects/${opts.projectId}/engagement/${opts.engagementId}
 — The Consulten Team`
   )
 }
+
+export async function sendDeliverableSubmittedAdminEmail(opts: {
+  adminEmail: string
+  projectTitle: string
+  engagementId: string
+}) {
+  await send(
+    opts.adminEmail,
+    `Deliverable submitted — ${opts.projectTitle}`,
+    `A consultant has submitted a deliverable for ${opts.projectTitle}.
+
+Review it in the admin panel:
+${APP_URL}/admin/engagements/${opts.engagementId}
+
+— The Consulten Team`
+  )
+}
+
+export async function sendAiQaCompleteEmail(opts: {
+  clientEmail: string
+  clientName: string
+  projectTitle: string
+  projectId: string
+  engagementId: string
+}) {
+  await send(
+    opts.clientEmail,
+    `Deliverable ready for your review — ${opts.projectTitle}`,
+    `Hi ${opts.clientName},
+
+The deliverable for ${opts.projectTitle} has been reviewed and is ready for your acceptance.
+
+Log in to review and accept or request a revision:
+${APP_URL}/projects/${opts.projectId}/engagement/${opts.engagementId}
+
+— The Consulten Team`
+  )
+}
+
+export async function sendRevisionRequestedEmail(opts: {
+  consultantEmail: string
+  consultantName: string
+  projectTitle: string
+  engagementId: string
+  reason: string
+}) {
+  await send(
+    opts.consultantEmail,
+    `Revision requested — ${opts.projectTitle}`,
+    `Hi ${opts.consultantName},
+
+The client has requested a revision for ${opts.projectTitle}.
+
+Reason: ${opts.reason}
+
+Log in to review and resubmit:
+${APP_URL}/engagements/${opts.engagementId}
+
+— The Consulten Team`
+  )
+}
+
+export async function sendEngagementClosedEmail(opts: {
+  email: string
+  name: string
+  projectTitle: string
+  engagementId: string
+  projectId: string
+  role: 'client' | 'consultant'
+}) {
+  const link = opts.role === 'client'
+    ? `${APP_URL}/projects/${opts.projectId}/engagement/${opts.engagementId}`
+    : `${APP_URL}/engagements/${opts.engagementId}`
+  await send(
+    opts.email,
+    `Engagement closed — ${opts.projectTitle}`,
+    `Hi ${opts.name},
+
+The engagement for ${opts.projectTitle} has been closed. Please take a moment to leave feedback.
+
+Log in to leave feedback:
+${link}
+
+— The Consulten Team`
+  )
+}
