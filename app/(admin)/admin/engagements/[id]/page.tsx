@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
 import { ENGAGEMENT_TRANSITIONS } from '@/modules/engagements/types'
 import { startEngagementAction, beginReviewAction, acceptEngagementAction, closeEngagementAction, cancelEngagementAction, resolveAdminTaskAction, updateRevisionRequestAction, sendMessageAction } from '../actions'
+import { openDisputeAction, updatePaymentStatusAction } from '../../disputes/actions'
 
 const COMM_TYPES = ['CLARIFICATION', 'DOCUMENT_REQUEST', 'REVISION_RESPONSE', 'ISSUE_FLAG'] as const
 const COMM_LABELS: Record<string, string> = {
@@ -34,6 +35,9 @@ export default async function EngagementDetailPage({ params }: { params: Promise
   const openAdminTask = latestDeliverable?.aiQaRiskFlag
     ? await db.adminTask.findFirst({ where: { deliverableId: latestDeliverable.id, resolved: false } })
     : null
+
+  const dispute = await db.dispute.findUnique({ where: { engagementId: id } })
+  const paymentRecord = await db.paymentTransactionRecord.findUnique({ where: { engagementId: id } })
 
   return (
     <div className="p-8 space-y-6">
@@ -109,6 +113,22 @@ export default async function EngagementDetailPage({ params }: { params: Promise
         </div>
       )}
 
+      {dispute && (
+        <div className="bg-white rounded-lg border border-red-200 p-6 space-y-2 text-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-slate-700">Dispute</h2>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">{dispute.adminReviewStatus}</span>
+              <a href={`/admin/disputes/${dispute.id}`} className="text-xs text-indigo-600 hover:underline">View dispute →</a>
+            </div>
+          </div>
+          <p className="text-slate-600">{dispute.disputeReason}</p>
+          {dispute.aiDisputeSummary && (
+            <div className="p-3 bg-slate-50 rounded text-xs text-slate-700">{dispute.aiDisputeSummary}</div>
+          )}
+        </div>
+      )}
+
       <div className="bg-white rounded-lg border border-slate-200 p-6">
         <h2 className="text-sm font-semibold text-slate-700 mb-3">Actions</h2>
         <div className="flex flex-wrap gap-2">
@@ -137,9 +157,56 @@ export default async function EngagementDetailPage({ params }: { params: Promise
               <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-red-600 text-white hover:bg-red-700">Cancel</button>
             </form>
           )}
+          {!dispute && engagement.status !== 'CLOSED' && engagement.status !== 'CANCELLED' && (allowed.includes('DISPUTED') || engagement.status === 'UNDER_REVIEW' || engagement.status === 'ACCEPTED') && (
+            <form action={openDisputeAction.bind(null, id)} className="flex items-center gap-2">
+              <input name="disputeReason" required placeholder="Dispute reason…" className="text-sm border border-slate-300 rounded px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-500 w-64" />
+              <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-red-600 text-white hover:bg-red-700">Open Dispute</button>
+            </form>
+          )}
           {allowed.length === 0 && <p className="text-sm text-slate-400">No actions available.</p>}
         </div>
       </div>
+
+      {paymentRecord && (
+        <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-slate-700">Payment</h2>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div><p className="text-slate-500">Amount</p><p className="font-medium">${paymentRecord.amount.toString()}</p></div>
+            <div><p className="text-slate-500">Platform fee</p><p className="font-medium">{paymentRecord.platformFee ? `$${paymentRecord.platformFee.toString()}` : '—'}</p></div>
+            <div><p className="text-slate-500">Payout amount</p><p className="font-medium">{paymentRecord.payoutAmount ? `$${paymentRecord.payoutAmount.toString()}` : '—'}</p></div>
+            <div><p className="text-slate-500">Payment status</p><p className="font-medium">{paymentRecord.paymentStatus}</p></div>
+            <div><p className="text-slate-500">Payout status</p><p className="font-medium">{paymentRecord.payoutStatus}</p></div>
+            <div><p className="text-slate-500">Due date</p><p className="font-medium">{paymentRecord.paymentDueDate?.toLocaleDateString() ?? '—'}</p></div>
+            {paymentRecord.adminNotes && <div className="col-span-2"><p className="text-slate-500">Notes</p><p>{paymentRecord.adminNotes}</p></div>}
+          </div>
+          <form action={updatePaymentStatusAction.bind(null, id)} className="space-y-3 pt-3 border-t border-slate-100">
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Update Status</h3>
+            <div className="flex gap-3 flex-wrap">
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Payment status</label>
+                <select name="paymentStatus" defaultValue={paymentRecord.paymentStatus} className="text-sm border border-slate-300 rounded px-2 py-1">
+                  {['NOT_REQUIRED_YET','AUTHORIZATION_PENDING','AUTHORIZED','PAYMENT_FAILED','PAYMENT_CONFIRMED','RELEASE_PENDING','RELEASED','REFUNDED','DISPUTED'].map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Payout status</label>
+                <select name="payoutStatus" defaultValue={paymentRecord.payoutStatus} className="text-sm border border-slate-300 rounded px-2 py-1">
+                  {['PENDING','RELEASE_PENDING','RELEASED','ON_HOLD','REFUNDED'].map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Admin notes</label>
+              <input name="adminNotes" defaultValue={paymentRecord.adminNotes ?? ''} className="text-sm border border-slate-300 rounded px-3 py-1.5 w-full focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-slate-600 text-white hover:bg-slate-700">Update Payment</button>
+          </form>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-4">
         <h2 className="text-sm font-semibold text-slate-700">Communications</h2>
