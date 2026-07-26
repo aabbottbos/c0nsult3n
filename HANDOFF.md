@@ -16,6 +16,7 @@ Current state of the build as of 2026-07-26. Last updated 2026-07-26 (M6 complet
 | M4 | ✅ Complete | Matching pipeline (eligibility filter + AI assessment), admin matching workspace, addCandidateWithAI service function, invitation dispatch from shortlist detail. 16/16 tests. |
 | M5 | ✅ Complete | Proposal deviation gate (PENDING_ADMIN_REVIEW), consultant selection → engagement auto-creation, sibling NOT_SELECTED, withdraw, admin deviation review UI, consultant deviation fields. 21/21 tests. |
 | M6 | ✅ Complete | Delivery workflow, AI QA on deliverables, structured comms (CommunicationType enum), revision cycle, closeout, client+consultant feedback. 31/31 tests. |
+| M7 | 🔄 In Progress | Dispute flow, payment status tracking. Design spec at `docs/superpowers/specs/2026-07-26-m7-disputes-payments-design.md`. |
 
 ---
 
@@ -189,8 +190,26 @@ The `consulten` remote points to `https://github.com/aabbottbos/c0nsult3n.git`.
 
 ## Next Work (M7)
 
-M6 is complete. Gate 6 verified: AI QA runs before acceptance, riskFlag creates AdminTask, client sees QA notes immediately, comms constrained to CommunicationType, feedback upserts after CLOSED.
+M7 is in progress. Design spec approved: `docs/superpowers/specs/2026-07-26-m7-disputes-payments-design.md`.
 
-1. **Vercel deployment** (ongoing blocker) — Git integration rejects pushes due to email mismatch. See M4 notes.
-2. **M7: Dispute flow, payment status, "Revision Due Soon" cron** — Deferred from M6. Requires cron infrastructure for revision deadline notifications.
-3. **M5/M6 known gaps** — (a) No duplicate-proposal guard (consultant can submit multiple proposals if invitation resets); (b) Withdrawn proposals don't update invitation status back; (c) `listProposals` admin page doesn't filter by status — all proposals shown including NOT_SELECTED/WITHDRAWN; (d) AI QA uses fire-and-forget — if Claude is unavailable, engagement stays in DELIVERABLE_SUBMITTED indefinitely (no retry or timeout).
+### M7 Scope (minimal viable)
+- **Disputes:** Client `ISSUE_FLAG` comm → admin escalates to `Dispute` record → engagement enters `DISPUTED` → admin resolves (accept / revise / cancel) → terminal state. AI dispute summary (admin-only, gated). New module: `modules/disputes/service.ts`.
+- **Payment status:** `PaymentTransactionRecord` with core financial fields (`amount`, `platformFee`, `payoutAmount`, `paymentStatus`, `payoutStatus`, `paymentDueDate`, `adminNotes`). Admin sets status manually. Client sees `amount` + `paymentStatus`; consultant sees `payoutAmount` + `payoutStatus`; admin sees all. Auto-created at engagement creation (amount = scope fee). New module: `modules/payments/service.ts`.
+- **Engagement schema fix:** `clientId` (bare string) → `clientContactId` (FK to `ClientContact`). Destructive dev-DB migration acceptable — no prod data.
+- **New enums:** `DisputeStatus`, `PaymentStatus`, `PayoutStatus`.
+- **No cron, no hardening sprint, no Stripe webhooks.**
+
+### M7 Intentional deferrals
+- "Revision Due Soon" cron — requires cron infrastructure, deferred post-M7.
+- Hardening sprint (permission test sweep, admin queue surfaces, EventLog audit coverage) — deferred post-M7.
+- Client-facing dispute UI — clients see engagement status change only; admin owns dispute workflow.
+- `ConsultantPayoutSetup` expansion — deferred.
+
+### Known gaps (carried from M5/M6)
+- No duplicate-proposal guard (consultant can submit multiple proposals if invitation resets).
+- Withdrawn proposals don't update invitation status back.
+- `listProposals` admin page doesn't filter by status — all proposals shown including NOT_SELECTED/WITHDRAWN.
+- AI QA is fire-and-forget — if Claude is unavailable, engagement stays in `DELIVERABLE_SUBMITTED` indefinitely (no retry or timeout).
+
+### Other
+- **Vercel deployment** (ongoing blocker) — Git integration rejects pushes due to email mismatch between Vercel team member and GitHub account `aabbottbos`. CLI deploys fail with DNS errors.
