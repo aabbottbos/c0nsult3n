@@ -1,13 +1,13 @@
 import { db } from '@/lib/db'
 import type { Tx } from '@/lib/db'
 import { logEvent } from '@/modules/audit-events/service'
-import type { Role } from '@/app/generated/prisma'
+import type { Role, CommunicationType } from '@/app/generated/prisma'
 
 export async function sendMessage(
   engagementId: string,
   senderId: string,
   senderRole: Role,
-  messageType: string,
+  messageType: CommunicationType,
   body: string,
 ) {
   return db.$transaction(async (tx: Tx) => {
