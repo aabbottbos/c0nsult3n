@@ -36,22 +36,27 @@ Current state of the build as of 2026-07-27. Last updated 2026-07-27 (Scoping Ma
 - **M7: Engagement detail** — dispute panel (status badge, reason, AI summary snippet, link to `/admin/disputes/[id]`); "Open Dispute" inline form when no dispute exists and engagement is not terminal; payment panel (all fields displayed; paymentStatus/payoutStatus/adminNotes update form)
 - **M7: Disputes list** at `/admin/disputes` — list of disputes with status badge and link; nav link in admin sidebar
 - **M7: Dispute detail** at `/admin/disputes/[id]` — dispute reason, deliverable notes, comms thread, AI summary panel with "Summarize Dispute" trigger, resolve form (proposedResolution textarea + outcome select: Accept/Revision/Cancel)
+- **Hardening: Work queue** at `/admin/queue` — unified pending-items page showing counts + cards for: submitted projects, scopes under review, shortlists under review, proposals pending review, unresolved admin tasks, open/active disputes. Nav link at top of sidebar.
+- **Hardening: Consultant detail** at `/admin/consultants/[id]` — verification panel (identity status badge, credential notes, admin notes, update form with status select); payout setup panel (account type, masked account, status badge, update form). Both records created on demand ("Initialize" button).
+- **Hardening: Scoping Matrix** on project detail — "Classify with AI" button (calls Claude, picks best-matching row, stores rationale); manual classify dropdown (select from 8 reference rows); "Confirm Classification" button to set `adminConfirmed=true`. Classification panel shows specialization, function, use case, AI rationale if present.
 
-### Client portal (`/projects`, `/projects/new`, `/projects/[id]`, `/projects/[id]/engagement/[engagementId]`)
+### Client portal (`/projects`, `/projects/new`, `/projects/[id]`, `/projects/[id]/engagement/[engagementId]`, `/notifications`)
 - Sign up via `/sign-up` → role selector → webhook assigns role, creates org + contact
-- Sidebar lists the client's projects with stage badges and action dots
+- Sidebar lists the client's projects with stage badges and action dots; Notifications link with unread badge count
 - New project form → auto-submits on create
 - Project detail is stage-aware: shows scope for review, shortlist with rationale + proposal select, engagement card, etc.
 - **M6: Engagement detail** — deliverable with consultant notes + AI QA notes (auto-exposed); Accept button blocked with amber message when `aiQaRiskFlag === true`; revision form with textarea reason; feedback form when `CLOSED` (satisfaction 1–5, repeat intent, comments); typed comms panel
 - **M7: Payment status card** — shows `amount` and `paymentStatus` only (no platformFee or payout fields)
+- **Hardening: Notifications** at `/notifications` — inbox with unread highlight (indigo border/bg); per-notification dismiss button; "Mark all read" form. Triggered by: proposal selected, engagement started, deliverable submitted, revision requested, engagement closed.
 
-### Consultant portal (`/invitations`, `/invitations/[id]`, `/engagements`, `/engagements/[id]`)
+### Consultant portal (`/invitations`, `/invitations/[id]`, `/engagements`, `/engagements/[id]`, `/notifications`)
 - Sign up via `/sign-up` → role selector → webhook assigns role, creates consultant profile
-- Sidebar shows pending invitation badge count and links to Active Engagements
+- Sidebar shows pending invitation badge count, Active Engagements link, and Notifications link with unread badge count
 - Invitation inbox with urgency coloring (red < 5 days, amber < 10 days to expiry)
 - Invitation detail shows full scope; proposal form visible only when status is `SENT/VIEWED/QUESTIONS_ASKED`
 - **M6: Engagement detail** — submit form with file upload + consultant notes textarea (when `IN_PROGRESS`); AI QA status (running/complete with notes); resubmit form linked to open RevisionRequest (when `REVISION_REQUESTED`); feedback form when `CLOSED`; typed comms panel
 - **M7: Payout status card** — shows `payoutAmount` (or "TBD" if null) and `payoutStatus` only (no amount or payment fields)
+- **Hardening: Notifications** at `/notifications` — same inbox pattern as client. Triggered by: invitation sent, engagement closed.
 
 ### Auth + routing
 - `/sign-up` — two-step Clerk flow: credentials (email + password), then role selector (client / consultant). Uses Clerk v7 `SignUpFutureResource` API.
@@ -229,30 +234,22 @@ The `consulten` remote points to `https://github.com/aabbottbos/c0nsult3n.git`.
 
 ---
 
-## Hardening Sprint (in progress)
+## Post-M7 Hardening (all complete, 2026-07-27)
 
-Plans in `docs/superpowers/plans/` (all dated 2026-07-26):
+| Plan | Status | Summary |
+|------|--------|---------|
+| MVP A Hardening | ✅ Complete | Permission invariant tests (3), admin work queue (`/admin/queue`), CI env vars + Node 22 |
+| Consultant Verification & Payout | ✅ Complete | Schema + service + admin UI for identity verification and payout setup |
+| Notifications | ✅ Complete | In-app notification system — service, inbox pages (client + consultant), sidebar badge |
+| Scoping Matrix Integration | ✅ Complete | 8 reference rows seeded; AI + manual classify + confirm on project detail page |
 
-| Plan | File | Status |
-|------|------|--------|
-| MVP A Hardening | `2026-07-26-mvpa-hardening.md` | 🔄 In progress — permission tests done, queue page + CI pending |
-| Consultant Verification & Payout | `2026-07-26-consultant-verification-payout.md` | ✅ Complete |
-| Notifications | `2026-07-26-notifications.md` | ✅ Complete |
-| Scoping Matrix Integration | `2026-07-26-scoping-matrix.md` | ⏳ Not started |
-
-### MVP A Hardening — complete
-- **Permission invariant tests** — 3 tests in `tests/permissions.test.ts` covering raw status bypass rejection
-- **Admin work queue** (`/admin/queue`) — unified pending-items page across all modules; nav link at top of admin sidebar
-- **CI env vars** — added `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `NEXT_PUBLIC_SENTRY_DSN`; upgraded Node 20→22
-
-### Also produced this session
-- `docs/DEPLOYMENT.md` — full local + Vercel deployment guide (prerequisites, env vars, Clerk setup, ngrok, migrations, admin user creation, common issues table)
+All 48 tests passing. Pushed to `https://github.com/aabbottbos/c0nsult3n`.
 
 ---
 
-## Next Work (M8 — TBD)
+## Next Work
 
-After hardening sprint completes:
-- Vercel deployment fix (ongoing blocker — email mismatch between Vercel team and GitHub account)
-- Stripe/payment provider integration (MVP B milestone)
-- Cron: "Revision Due Soon" notifications
+- **Vercel deployment** — ongoing blocker. Git integration rejects pushes (Vercel team email ≠ GitHub account `aabbottbos`). CLI deploys also fail with DNS errors. Needs investigation or account alignment.
+- **Stripe/payment provider integration** — MVP B milestone; `PaymentTransactionRecord` schema is in place, UI shells exist.
+- **Cron: "Revision Due Soon" notifications** — requires cron infrastructure, deferred.
+- **Explicit AI gate UI** — `draftScopeWithAIAction` and `generateMatchRationaleAction` write to `AIOutputLog` but there's no dedicated human-review step in the UI. Logged; approval is implicit. Per `ai-gates.md`, gate UI is MVP B.

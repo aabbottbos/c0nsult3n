@@ -201,11 +201,78 @@ The FROM address is hardcoded as `Consulten <noreply@consulten.co>` in `lib/emai
 Tests hit the **real Neon dev DB** — not a mock or local Postgres. Make sure `.env` has `DATABASE_URL` pointing at your Neon dev branch.
 
 ```bash
-npm test                              # all 40 tests
-npx vitest run tests/disputes.test.ts # single file
+npm test                                      # all 48 tests
+npx vitest run tests/disputes.test.ts         # single file
 ```
 
 Tests use `TRUNCATE CASCADE` before and after each test — they are destructive on whatever DB `DATABASE_URL` points at. Never point this at a production database.
+
+### Test files
+
+| File | Tests | Covers |
+|------|-------|--------|
+| `spine.test.ts` | 9 | Full happy-path spine + permission invariants |
+| `matching.test.ts` | 6 | Eligibility filter, AI assessment, FK enforcement, field projection |
+| `proposals.test.ts` | 5 | Deviation gate, engagement creation, withdraw, sibling NOT_SELECTED |
+| `deliverables.test.ts` | 5 | Submit, AI QA, risk flag → AdminTask block, resubmit |
+| `closeout.test.ts` | 3 | Dual feedback, duplicate upsert, invalid close |
+| `communications.test.ts` | 2 | Typed messages, cross-engagement isolation |
+| `disputes.test.ts` | 5 | Open dispute, resolve (2 outcomes), dispute blocks accept, AI summary |
+| `payments.test.ts` | 4 | Auto-create record, update status, client/consultant field projection |
+| `permissions.test.ts` | 3 | Raw status bypass rejection (scope, engagement, proposal) |
+| `file-upload.test.ts` | 1 | Blob mock, fileUrl stored, engagement transitions |
+| `consultant-verification.test.ts` | 5 | Verification create/update, payout create/update, uniqueness |
+| `notifications.test.ts` | 4 | Create, countUnread+markRead, markAllRead, recipient isolation |
+| `scoping-matrix.test.ts` | 5 | listMatrixRows, getClassification null, classifyManually, upsert idempotency, confirmClassification |
+
+---
+
+## Manual Testing Checklist
+
+Run `npx prisma db seed` first to get sample data. Sign in as each role using the seeded accounts (set `publicMetadata.role` via Clerk Dashboard for the admin account).
+
+### Auth flow
+- [ ] `/sign-up` → credentials step → role selector → client lands on `/projects`, consultant lands on `/invitations`
+- [ ] Webhook fires on sign-up: client org + contact created; consultant profile created
+- [ ] Admin promoted via Clerk metadata → `/dashboard` loads with entity counts
+
+### Admin portal golden path
+- [ ] `/admin/projects` — lists projects with status badges
+- [ ] Project detail → "Start Admin Review" → "Draft Scope with AI" → scope created, redirects to scope detail
+- [ ] Scope detail → "Move to Admin Review" → "Approve" → scope `ADMIN_APPROVED`
+- [ ] Client confirms scope on `/projects/[id]` → scope `CLIENT_CONFIRMED`
+- [ ] Project detail → "Ready for Matching" → `/admin/projects/[id]/matching` → "Run Matching" → eligible consultants appear with AI tier badges
+- [ ] "Add to Shortlist" → shortlist detail → "Invite" → consultant receives email + in-app notification
+- [ ] Proposal submitted → `/admin/proposals/[id]` → approve/reject deviation (if present)
+- [ ] Client selects proposal → engagement auto-created → admin engagement detail loads
+- [ ] Engagement detail → dispute panel, payment panel, "Close Engagement" when `ACCEPTED`
+- [ ] `/admin/disputes` and `/admin/disputes/[id]` — open dispute, AI summary, resolve
+- [ ] `/admin/queue` — shows counts across all pending categories
+
+### Admin: Consultant management
+- [ ] `/admin/consultants/[id]` → "Initialize Verification" → identity status dropdown → update
+- [ ] "Initialize Payout Setup" → account type / masked account fields → update
+- [ ] `/admin/consultants` list shows Verification and Payout status columns
+
+### Admin: Scoping Matrix
+- [ ] Project detail → classification panel → "Classify with AI" → row + rationale appear
+- [ ] Manual dropdown → select row → "Classify Manually" → `adminConfirmed=true`, no rationale
+- [ ] "Confirm Classification" button appears when `adminConfirmed=false`; disappears after confirm
+
+### Client portal
+- [ ] `/projects/new` → project created with `DRAFT` status
+- [ ] Project detail shows scope when present; "Confirm Scope" button when `ADMIN_APPROVED`
+- [ ] Shortlist visible when `CLIENT_VISIBLE`; rationale shown per candidate
+- [ ] "Select this consultant" → engagement created; proposal with deviations shows amber badge until admin approves
+- [ ] Engagement detail: accept deliverable, request revision, submit feedback when closed
+- [ ] `/notifications` — unread items highlighted; dismiss and "Mark all read" work
+
+### Consultant portal
+- [ ] `/invitations` — urgency color coding (red < 5 days, amber < 10 days)
+- [ ] Invitation detail — proposal form only visible when `SENT/VIEWED/QUESTIONS_ASKED`
+- [ ] Submit proposal with deviation fields → enters `PENDING_ADMIN_REVIEW`
+- [ ] Engagement detail: file upload + consultant notes, resubmit on revision, feedback when closed
+- [ ] `/notifications` — invitation sent notification appears; dismiss works
 
 ---
 
