@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { getProject } from '@/modules/projects/service'
+import { getClassification, listMatrixRows } from '@/modules/scoping-matrix/service'
 import { db } from '@/lib/db'
 import {
   submitProjectAction,
@@ -9,6 +10,9 @@ import {
   markMatchingInProgressAction,
   cancelProjectAction,
   draftScopeWithAIAction,
+  classifyWithAIAction,
+  classifyManuallyAction,
+  confirmClassificationAction,
 } from '../actions'
 import { PROJECT_TRANSITIONS } from '@/modules/projects/types'
 
@@ -24,6 +28,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   })
 
   const allowed = PROJECT_TRANSITIONS[project.status]
+  const [classification, matrixRows] = await Promise.all([
+    getClassification(id),
+    listMatrixRows(),
+  ])
 
   return (
     <div className="p-8 space-y-6">
@@ -102,6 +110,48 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <a href={`/admin/projects/${id}/matching`} className="text-sm text-indigo-600 hover:underline">Run Matching →</a>
         </div>
       )}
+
+      <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-4">
+        <h2 className="text-sm font-semibold text-slate-700">Scoping Matrix Classification</h2>
+        {classification ? (
+          <div className="space-y-2">
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              <div><dt className="text-slate-500">Specialization</dt><dd className="text-slate-900">{classification.matrixRow.specialization}</dd></div>
+              <div><dt className="text-slate-500">Function</dt><dd className="text-slate-900">{classification.matrixRow.function}</dd></div>
+              <div><dt className="text-slate-500">Use Case</dt><dd className="text-slate-900">{classification.matrixRow.useCase}</dd></div>
+              <div><dt className="text-slate-500">Confirmed</dt><dd className="text-slate-900">{classification.adminConfirmed ? 'Yes' : 'No'}</dd></div>
+            </dl>
+            {classification.aiRationale && (
+              <p className="text-sm text-slate-600 bg-slate-50 rounded p-3"><span className="font-medium">AI Rationale:</span> {classification.aiRationale}</p>
+            )}
+            {!classification.adminConfirmed && (
+              <form action={confirmClassificationAction.bind(null, id)}>
+                <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-green-600 text-white hover:bg-green-700">Confirm Classification</button>
+              </form>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400">No classification yet.</p>
+        )}
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+          <form action={classifyWithAIAction.bind(null, id)}>
+            <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-purple-600 text-white hover:bg-purple-700">Classify with AI</button>
+          </form>
+          <form action={async (formData: FormData) => {
+            'use server'
+            const rowId = formData.get('matrixRowId') as string
+            if (rowId) await classifyManuallyAction(id, rowId)
+          }} className="flex gap-2">
+            <select name="matrixRowId" className="text-sm border border-slate-300 rounded px-2 py-1.5 bg-white" defaultValue="">
+              <option value="" disabled>Select row…</option>
+              {matrixRows.map(r => (
+                <option key={r.id} value={r.id}>{r.specialization} — {r.function}</option>
+              ))}
+            </select>
+            <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-slate-600 text-white hover:bg-slate-700">Classify Manually</button>
+          </form>
+        </div>
+      </div>
 
       <div className="bg-white rounded-lg border border-slate-200 p-6">
         <h2 className="text-sm font-semibold text-slate-700 mb-3">Event Log</h2>

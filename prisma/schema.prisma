@@ -261,11 +261,12 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  client      ClientOrganization     @relation(fields: [clientId], references: [id])
-  scope       Scope?
-  shortlist   Shortlist?
-  engagements Engagement[]
-  invitations ConsultantInvitation[]
+  client                ClientOrganization          @relation(fields: [clientId], references: [id])
+  scope                 Scope?
+  shortlist             Shortlist?
+  engagements           Engagement[]
+  invitations           ConsultantInvitation[]
+  scopingClassification ScopingMatrixClassification?
 }
 
 model Scope {
@@ -553,7 +554,32 @@ model AdminTask {
   @@index([deliverableId])
 }
 
+model ScopingMatrixRow {
+  id                        String   @id @default(cuid())
+  specialization            String
+  function                  String
+  responsibilityCategory    String
+  useCase                   String
+  requiredInputs            String
+  deliverablePattern        String
+  acceptanceCriteriaPattern String
+  standardExclusions        String
+  effortEstimateHours       Int
+  suitability               String
+  createdAt                 DateTime @default(now())
+
+  classifications ScopingMatrixClassification[]
+}
+
 model ScopingMatrixClassification {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  projectId      String   @unique
+  matrixRowId    String
+  aiRationale    String?
+  adminConfirmed Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project   Project          @relation(fields: [projectId], references: [id])
+  matrixRow ScopingMatrixRow @relation(fields: [matrixRowId], references: [id])
 }

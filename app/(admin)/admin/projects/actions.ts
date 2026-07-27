@@ -11,6 +11,7 @@ import {
   cancelProject,
 } from '@/modules/projects/service'
 import { createScope, moveToAdminReview } from '@/modules/scopes/service'
+import { classifyWithAI, classifyManually, confirmClassification } from '@/modules/scoping-matrix/service'
 import { callClaude } from '@/lib/ai'
 import { db } from '@/lib/db'
 
@@ -115,4 +116,22 @@ export async function draftScopeWithAIAction(projectId: string) {
 
   await moveToAdminReview(scope.id, actor)
   redirect(`/scopes/${scope.id}`)
+}
+
+export async function classifyWithAIAction(projectId: string) {
+  const actor = await actorId()
+  await classifyWithAI(projectId, actor)
+  redirect(`/admin/projects/${projectId}`)
+}
+
+export async function classifyManuallyAction(projectId: string, matrixRowId: string) {
+  const actor = await actorId()
+  await classifyManually(projectId, matrixRowId, actor)
+  redirect(`/admin/projects/${projectId}`)
+}
+
+export async function confirmClassificationAction(projectId: string) {
+  const actor = await actorId()
+  await confirmClassification(projectId, actor)
+  redirect(`/admin/projects/${projectId}`)
 }

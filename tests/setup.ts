@@ -13,7 +13,8 @@ const TRUNCATE_SQL = `
     "AdminTask", "AIOutputLog", "Feedback", "RevisionRequest", "Deliverable",
     "EngagementCommunication", "Dispute", "PaymentTransactionRecord", "Engagement",
     "Proposal", "ConsultantInvitation", "ShortlistCandidate", "Shortlist", "Scope",
-    "Project", "ConsultantRestriction", "ConsultantVerification", "ConsultantPayoutSetup",
+    "ScopingMatrixClassification", "ScopingMatrixRow", "Project",
+    "ConsultantRestriction", "ConsultantVerification", "ConsultantPayoutSetup",
     "ConsultantProfile", "ClientContact", "ClientOrganization", "Notification",
     "EventLog", "LegalAcceptanceRecord", "User"
   CASCADE
