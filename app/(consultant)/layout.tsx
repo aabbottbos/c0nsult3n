@@ -1,6 +1,7 @@
 import { requireRole } from '@/lib/auth'
 import { auth } from '@clerk/nextjs/server'
 import { db } from '@/lib/db'
+import { countUnread } from '@/modules/notifications/service'
 import { SignOutButton } from '@/components/sign-out-button'
 import type { ReactNode } from 'react'
 
@@ -10,6 +11,7 @@ export default async function ConsultantLayout({ children }: { children: ReactNo
   const user = await db.user.findUniqueOrThrow({ where: { clerkId: userId! } })
   const profile = await db.consultantProfile.findUniqueOrThrow({ where: { userId: user.id } })
 
+  const unreadCount = await countUnread(user.id)
   const pendingInvitations = await db.consultantInvitation.count({
     where: {
       consultantId: profile.id,
@@ -31,6 +33,12 @@ export default async function ConsultantLayout({ children }: { children: ReactNo
             )}
           </a>
           <a href="/engagements" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Active Engagements</a>
+          <a href="/notifications" className="flex items-center justify-between px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">
+            <span>Notifications</span>
+            {unreadCount > 0 && (
+              <span className="bg-indigo-500 text-white text-xs rounded-full px-1.5 py-0.5 font-semibold">{unreadCount}</span>
+            )}
+          </a>
         </nav>
         <div className="px-3 py-4 border-t border-slate-700">
           <SignOutButton />

@@ -4,6 +4,7 @@ import { logEvent } from '@/modules/audit-events/service'
 import type { Role, InvitationStatus } from '@/app/generated/prisma'
 import { INVITATION_TRANSITIONS } from './types'
 import { sendInvitationEmail } from '@/lib/email'
+import { createNotification } from '@/modules/notifications/service'
 
 async function transition(invitationId: string, to: InvitationStatus, action: string, actorId: string, actorRole: Role) {
   return db.$transaction(async (tx: Tx) => {
@@ -50,6 +51,12 @@ export async function sendInvitation(invitationId: string, actorId: string) {
     projectTitle: inv.project.title,
     invitationId: inv.id,
     expiresAt: inv.expiresAt,
+  })
+  await createNotification({
+    recipientId: inv.consultant.user.id,
+    type: 'INVITATION_SENT',
+    body: `You have been invited to a project: ${inv.project.title}`,
+    link: `/invitations/${inv.id}`,
   })
 
   return updated

@@ -7,6 +7,7 @@ import { put } from '@vercel/blob'
 import { submitDeliverable, resubmitDeliverable, runAiQa, createFeedback } from '@/modules/deliverables/service'
 import { sendMessage } from '@/modules/communications/service'
 import { sendDeliverableSubmittedAdminEmail } from '@/lib/email'
+import { createNotification } from '@/modules/notifications/service'
 import type { CommunicationType } from '@/app/generated/prisma'
 
 async function consultantIds() {
@@ -36,7 +37,7 @@ export async function submitDeliverableAction(engagementId: string, formData: Fo
 
   const eng = await db.engagement.findUniqueOrThrow({
     where: { id: engagementId },
-    include: { project: true },
+    include: { project: true, clientContact: true },
   })
   const adminUsers = await db.user.findMany({ where: { role: 'admin' } })
   for (const adminUser of adminUsers) {
@@ -44,6 +45,14 @@ export async function submitDeliverableAction(engagementId: string, formData: Fo
       adminEmail: adminUser.email,
       projectTitle: eng.project.title,
       engagementId,
+    })
+  }
+  if (eng.clientContact?.userId) {
+    await createNotification({
+      recipientId: eng.clientContact.userId,
+      type: 'DELIVERABLE_SUBMITTED',
+      body: `A deliverable has been submitted for ${eng.project.title}.`,
+      link: `/projects/${eng.project.id}/engagement/${engagementId}`,
     })
   }
 

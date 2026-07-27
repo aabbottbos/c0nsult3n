@@ -5,6 +5,7 @@ import { markEngagementCreated, closeProject } from '@/modules/projects/service'
 import type { Role, EngagementStatus } from '@/app/generated/prisma'
 import { ENGAGEMENT_TRANSITIONS } from './types'
 import { sendProposalSelectedEmail, sendEngagementStartedEmail, sendEngagementClosedEmail } from '@/lib/email'
+import { createNotification } from '@/modules/notifications/service'
 
 async function transition(engagementId: string, to: EngagementStatus, action: string, actorId: string, actorRole: Role) {
   return db.$transaction(async (tx: Tx) => {
@@ -50,6 +51,12 @@ export async function createEngagement(
     projectTitle: eng.project.title,
     engagementId: eng.id,
   })
+  await createNotification({
+    recipientId: eng.consultant.user.id,
+    type: 'PROPOSAL_SELECTED',
+    body: `Your proposal was selected for ${eng.project.title}.`,
+    link: `/engagements/${eng.id}`,
+  })
 
   if (clientContact) {
     await sendEngagementStartedEmail({
@@ -58,6 +65,14 @@ export async function createEngagement(
       projectTitle: eng.project.title,
       projectId: eng.project.id,
     })
+    if (clientContact.userId) {
+      await createNotification({
+        recipientId: clientContact.userId,
+        type: 'ENGAGEMENT_STARTED',
+        body: `Your engagement for ${eng.project.title} has started.`,
+        link: `/projects/${eng.project.id}/engagement/${eng.id}`,
+      })
+    }
   }
 
   return engagement
@@ -134,6 +149,14 @@ export async function closeEngagement(engagementId: string, actorId: string) {
       projectId: full.projectId,
       role: 'client',
     })
+    if (full.clientContact.userId) {
+      await createNotification({
+        recipientId: full.clientContact.userId,
+        type: 'ENGAGEMENT_CLOSED',
+        body: `Your engagement for ${full.project.title} has been closed.`,
+        link: `/projects/${full.projectId}/engagement/${engagementId}`,
+      })
+    }
   }
   await sendEngagementClosedEmail({
     email: full.consultant.user.email,
@@ -142,6 +165,12 @@ export async function closeEngagement(engagementId: string, actorId: string) {
     engagementId,
     projectId: full.projectId,
     role: 'consultant',
+  })
+  await createNotification({
+    recipientId: full.consultant.user.id,
+    type: 'ENGAGEMENT_CLOSED',
+    body: `Your engagement for ${full.project.title} has been closed.`,
+    link: `/engagements/${engagementId}`,
   })
 
   return full

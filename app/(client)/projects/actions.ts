@@ -10,6 +10,7 @@ import { acceptEngagement, requestRevision } from '@/modules/engagements/service
 import { createRevisionRequest, createFeedback } from '@/modules/deliverables/service'
 import { sendMessage } from '@/modules/communications/service'
 import { sendRevisionRequestedEmail } from '@/lib/email'
+import { createNotification } from '@/modules/notifications/service'
 import type { CommunicationType } from '@/app/generated/prisma'
 
 async function dbUserId() {
@@ -70,6 +71,12 @@ export async function requestRevisionAction(engagementId: string, deliverableId:
     projectTitle: eng.project.title,
     engagementId,
     reason,
+  })
+  await createNotification({
+    recipientId: eng.consultant.user.id,
+    type: 'REVISION_REQUESTED',
+    body: `A revision has been requested for ${eng.project.title}.`,
+    link: `/engagements/${engagementId}`,
   })
 
   redirect(`/projects/${projectId}/engagement/${engagementId}`)

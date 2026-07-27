@@ -1,6 +1,7 @@
 import { requireRole } from '@/lib/auth'
 import { auth } from '@clerk/nextjs/server'
 import { db } from '@/lib/db'
+import { countUnread } from '@/modules/notifications/service'
 import { SignOutButton } from '@/components/sign-out-button'
 import type { ReactNode } from 'react'
 
@@ -8,6 +9,7 @@ export default async function ClientLayout({ children }: { children: ReactNode }
   await requireRole('client')
   const { userId } = await auth()
   const user = await db.user.findUniqueOrThrow({ where: { clerkId: userId! } })
+  const unreadCount = await countUnread(user.id)
   const projects = await db.project.findMany({
     where: { client: { contacts: { some: { userId: user.id } } } },
     orderBy: { createdAt: 'desc' },
@@ -48,6 +50,14 @@ export default async function ClientLayout({ children }: { children: ReactNode }
               <p className="px-2 py-1 text-xs text-slate-500">No projects yet.</p>
             )}
           </nav>
+        </div>
+        <div className="px-3 pb-2">
+          <a href="/notifications" className="flex items-center justify-between px-2 py-1.5 rounded text-sm text-slate-300 hover:bg-slate-700">
+            <span>Notifications</span>
+            {unreadCount > 0 && (
+              <span className="bg-indigo-500 text-white text-xs rounded-full px-1.5 py-0.5 font-semibold">{unreadCount}</span>
+            )}
+          </a>
         </div>
         <div className="mt-auto px-3 py-4 border-t border-slate-700">
           <SignOutButton />

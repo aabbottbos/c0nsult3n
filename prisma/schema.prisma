@@ -166,6 +166,7 @@ model User {
   consultantProfile ConsultantProfile?
   eventLogs         EventLog[]
   legalAcceptances  LegalAcceptanceRecord[]
+  notifications     Notification[]
 }
 
 model ClientOrganization {
@@ -516,9 +517,28 @@ model PaymentTransactionRecord {
   engagement Engagement @relation(fields: [engagementId], references: [id])
 }
 
+enum NotificationType {
+  INVITATION_SENT
+  PROPOSAL_SELECTED
+  ENGAGEMENT_STARTED
+  DELIVERABLE_SUBMITTED
+  AI_QA_COMPLETE
+  REVISION_REQUESTED
+  ENGAGEMENT_CLOSED
+}
+
 model Notification {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
+  id          String           @id @default(cuid())
+  recipientId String
+  type        NotificationType
+  body        String
+  link        String
+  read        Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  recipient User @relation(fields: [recipientId], references: [id])
+
+  @@index([recipientId, read])
 }
 
 model AdminTask {
