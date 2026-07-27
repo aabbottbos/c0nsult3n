@@ -232,7 +232,7 @@ Plans in `docs/superpowers/plans/` (all dated 2026-07-26):
 | Plan | File | Status |
 |------|------|--------|
 | MVP A Hardening | `2026-07-26-mvpa-hardening.md` | 🔄 In progress — permission tests done, queue page + CI pending |
-| Consultant Verification & Payout | `2026-07-26-consultant-verification-payout.md` | ⏳ Not started |
+| Consultant Verification & Payout | `2026-07-26-consultant-verification-payout.md` | ✅ Complete |
 | Notifications | `2026-07-26-notifications.md` | ⏳ Not started |
 | Scoping Matrix Integration | `2026-07-26-scoping-matrix.md` | ⏳ Not started |
 
