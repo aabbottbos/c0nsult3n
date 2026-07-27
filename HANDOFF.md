@@ -1,6 +1,6 @@
 # Consulten — Handoff Context
 
-Current state of the build as of 2026-07-26. Last updated 2026-07-26 (M7 complete). Update this file when milestone status changes or decisions are reversed.
+Current state of the build as of 2026-07-27. Last updated 2026-07-27 (Hardening sprint complete). Update this file when milestone status changes or decisions are reversed.
 
 ---
 
@@ -17,6 +17,7 @@ Current state of the build as of 2026-07-26. Last updated 2026-07-26 (M7 complet
 | M5 | ✅ Complete | Proposal deviation gate (PENDING_ADMIN_REVIEW), consultant selection → engagement auto-creation, sibling NOT_SELECTED, withdraw, admin deviation review UI, consultant deviation fields. 21/21 tests. |
 | M6 | ✅ Complete | Delivery workflow, AI QA on deliverables, structured comms (CommunicationType enum), revision cycle, closeout, client+consultant feedback. 31/31 tests. |
 | M7 | ✅ Complete | Dispute flow, payment status tracking, clientContactId FK fix. 40/40 tests. |
+| Hardening Sprint | ✅ Complete | Permission invariant tests (3), admin work queue (/admin/queue), CI env vars + Node 22 upgrade |
 
 ---
 
@@ -66,7 +67,8 @@ Current state of the build as of 2026-07-26. Last updated 2026-07-26 (M7 complet
 - `tests/communications.test.ts` — M6 (2 tests): sendMessage with CommunicationType, cross-engagement isolation
 - `tests/disputes.test.ts` — M7 (5 tests): openDispute→DISPUTED+EventLog, resolveDispute ACCEPTED, resolveDispute CANCELLED, acceptEngagement blocked by open dispute, generateAiDisputeSummary writes AIOutputLog with exposed:false
 - `tests/payments.test.ts` — M7 (4 tests): payment record auto-created with scope fee, updatePaymentStatus+EventLog, client field projection (no platformFee), consultant field projection (no amount/paymentStatus)
-- 40/40 tests pass against the real Neon dev DB
+- `tests/permissions.test.ts` — Hardening (3 tests): scope ADMIN_REVIEW→CLIENT_CONFIRMED throws, engagement PENDING_START→ACCEPTED throws, proposal PENDING_ADMIN_REVIEW rejects selectProposal
+- 43/43 tests pass against the real Neon dev DB
 - Test setup uses atomic `TRUNCATE ... CASCADE` in both `beforeEach` and `afterEach` (replaces 21-step sequential `deleteMany` chain that was vulnerable to partial failures on Neon connection drops)
 
 ### M5: Proposal, selection, engagement
@@ -223,10 +225,30 @@ The `consulten` remote points to `https://github.com/aabbottbos/c0nsult3n.git`.
 
 ---
 
+## Hardening Sprint (in progress)
+
+Plans in `docs/superpowers/plans/` (all dated 2026-07-26):
+
+| Plan | File | Status |
+|------|------|--------|
+| MVP A Hardening | `2026-07-26-mvpa-hardening.md` | 🔄 In progress — permission tests done, queue page + CI pending |
+| Consultant Verification & Payout | `2026-07-26-consultant-verification-payout.md` | ⏳ Not started |
+| Notifications | `2026-07-26-notifications.md` | ⏳ Not started |
+| Scoping Matrix Integration | `2026-07-26-scoping-matrix.md` | ⏳ Not started |
+
+### MVP A Hardening — complete
+- **Permission invariant tests** — 3 tests in `tests/permissions.test.ts` covering raw status bypass rejection
+- **Admin work queue** (`/admin/queue`) — unified pending-items page across all modules; nav link at top of admin sidebar
+- **CI env vars** — added `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `NEXT_PUBLIC_SENTRY_DSN`; upgraded Node 20→22
+
+### Also produced this session
+- `docs/DEPLOYMENT.md` — full local + Vercel deployment guide (prerequisites, env vars, Clerk setup, ngrok, migrations, admin user creation, common issues table)
+
+---
+
 ## Next Work (M8 — TBD)
 
-M7 is complete. M8 scope not yet defined. Candidates:
-- Hardening sprint: permission test sweep, admin queue surfaces, EventLog audit UI
-- Vercel deployment fix
+After hardening sprint completes:
+- Vercel deployment fix (ongoing blocker — email mismatch between Vercel team and GitHub account)
 - Stripe/payment provider integration (MVP B milestone)
 - Cron: "Revision Due Soon" notifications
