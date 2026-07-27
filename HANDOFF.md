@@ -1,6 +1,6 @@
 # Consulten — Handoff Context
 
-Current state of the build as of 2026-07-27. Last updated 2026-07-27 (Hardening sprint complete). Update this file when milestone status changes or decisions are reversed.
+Current state of the build as of 2026-07-27. Last updated 2026-07-27 (Scoping Matrix Integration complete). Update this file when milestone status changes or decisions are reversed.
 
 ---
 
@@ -18,6 +18,7 @@ Current state of the build as of 2026-07-27. Last updated 2026-07-27 (Hardening 
 | M6 | ✅ Complete | Delivery workflow, AI QA on deliverables, structured comms (CommunicationType enum), revision cycle, closeout, client+consultant feedback. 31/31 tests. |
 | M7 | ✅ Complete | Dispute flow, payment status tracking, clientContactId FK fix. 40/40 tests. |
 | Hardening Sprint | ✅ Complete | Permission invariant tests (3), admin work queue (/admin/queue), CI env vars + Node 22 upgrade |
+| Scoping Matrix Integration | ✅ Complete | ScopingMatrixRow (8 rows, seeded), ScopingMatrixClassification, AI classify + manual classify + confirm actions, admin panel on project detail. 48/48 tests. |
 
 ---
 
@@ -68,7 +69,10 @@ Current state of the build as of 2026-07-27. Last updated 2026-07-27 (Hardening 
 - `tests/disputes.test.ts` — M7 (5 tests): openDispute→DISPUTED+EventLog, resolveDispute ACCEPTED, resolveDispute CANCELLED, acceptEngagement blocked by open dispute, generateAiDisputeSummary writes AIOutputLog with exposed:false
 - `tests/payments.test.ts` — M7 (4 tests): payment record auto-created with scope fee, updatePaymentStatus+EventLog, client field projection (no platformFee), consultant field projection (no amount/paymentStatus)
 - `tests/permissions.test.ts` — Hardening (3 tests): scope ADMIN_REVIEW→CLIENT_CONFIRMED throws, engagement PENDING_START→ACCEPTED throws, proposal PENDING_ADMIN_REVIEW rejects selectProposal
-- 43/43 tests pass against the real Neon dev DB
+- `tests/scoping-matrix.test.ts` — Scoping Matrix (5 tests): listMatrixRows ordering, getClassification null, classifyManually creates with adminConfirmed=true, upsert idempotency, confirmClassification
+- `tests/consultant-verification.test.ts` — Verification+Payout (5 tests): createVerification, updateVerification, uniqueness, createPayoutSetup, updatePayoutSetup
+- `tests/notifications.test.ts` — Notifications (4 tests): createNotification, countUnread+markRead, markAllRead, recipient isolation
+- 48/48 tests pass against the real Neon dev DB
 - Test setup uses atomic `TRUNCATE ... CASCADE` in both `beforeEach` and `afterEach` (replaces 21-step sequential `deleteMany` chain that was vulnerable to partial failures on Neon connection drops)
 
 ### M5: Proposal, selection, engagement
