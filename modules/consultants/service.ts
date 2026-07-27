@@ -44,5 +44,45 @@ export async function listProfiles() {
 }
 
 export async function getProfile(id: string) {
-  return db.consultantProfile.findUnique({ where: { id }, include: { restrictions: true } })
+  return db.consultantProfile.findUnique({ where: { id }, include: { restrictions: true, verification: true, payoutSetup: true } })
+}
+
+export async function createVerification(consultantId: string, actorId: string) {
+  return db.$transaction(async (tx: Tx) => {
+    const v = await tx.consultantVerification.create({ data: { consultantId } })
+    await logEvent(tx, { entityType: 'ConsultantVerification', entityId: v.id, action: 'create', actorId, actorRole: 'admin' })
+    return v
+  })
+}
+
+export async function updateVerification(
+  verificationId: string,
+  data: { identityStatus?: string; credentialNotes?: string; adminNotes?: string; verifiedAt?: Date | null },
+  actorId: string
+) {
+  return db.$transaction(async (tx: Tx) => {
+    const v = await tx.consultantVerification.update({ where: { id: verificationId }, data })
+    await logEvent(tx, { entityType: 'ConsultantVerification', entityId: verificationId, action: 'update', actorId, actorRole: 'admin' })
+    return v
+  })
+}
+
+export async function createPayoutSetup(consultantId: string, actorId: string) {
+  return db.$transaction(async (tx: Tx) => {
+    const p = await tx.consultantPayoutSetup.create({ data: { consultantId } })
+    await logEvent(tx, { entityType: 'ConsultantPayoutSetup', entityId: p.id, action: 'create', actorId, actorRole: 'admin' })
+    return p
+  })
+}
+
+export async function updatePayoutSetup(
+  payoutSetupId: string,
+  data: { accountType?: string; maskedAccount?: string; status?: string; adminNotes?: string },
+  actorId: string
+) {
+  return db.$transaction(async (tx: Tx) => {
+    const p = await tx.consultantPayoutSetup.update({ where: { id: payoutSetupId }, data })
+    await logEvent(tx, { entityType: 'ConsultantPayoutSetup', entityId: payoutSetupId, action: 'update', actorId, actorRole: 'admin' })
+    return p
+  })
 }

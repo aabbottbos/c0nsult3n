@@ -207,6 +207,8 @@ model ConsultantProfile {
   invitations      ConsultantInvitation[]
   proposals        Proposal[]
   engagements      Engagement[]
+  verification     ConsultantVerification?
+  payoutSetup      ConsultantPayoutSetup?
 }
 
 model ConsultantRestriction {
@@ -217,6 +219,32 @@ model ConsultantRestriction {
   activeFrom   DateTime
   activeTo     DateTime?
   createdAt    DateTime  @default(now())
+
+  consultant ConsultantProfile @relation(fields: [consultantId], references: [id])
+}
+
+model ConsultantVerification {
+  id              String    @id @default(cuid())
+  consultantId    String    @unique
+  identityStatus  String    @default("NOT_SUBMITTED")
+  credentialNotes String?
+  adminNotes      String?
+  verifiedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  consultant ConsultantProfile @relation(fields: [consultantId], references: [id])
+}
+
+model ConsultantPayoutSetup {
+  id            String   @id @default(cuid())
+  consultantId  String   @unique
+  accountType   String?
+  maskedAccount String?
+  status        String   @default("NOT_SET")
+  adminNotes    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   consultant ConsultantProfile @relation(fields: [consultantId], references: [id])
 }
