@@ -11,6 +11,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           Consulten <span className="text-indigo-400">Admin</span>
         </div>
         <nav className="flex-1 px-2 py-2 text-sm space-y-0.5">
+          <p className="px-3 pt-3 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-widest">Work Queue</p>
+          <a href="/admin/queue" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Queue</a>
           <p className="px-3 pt-3 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-widest">Projects</p>
           <a href="/admin/projects" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Projects</a>
           <a href="/scopes" className="flex items-center gap-2 px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Scopes</a>
