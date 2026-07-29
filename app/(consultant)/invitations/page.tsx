@@ -7,10 +7,14 @@ function daysUntil(date: Date | null): number | null {
 }
 
 function urgencyClass(days: number | null) {
-  if (days === null) return 'text-slate-400'
+  if (days === null) return 'text-ink-400'
   if (days < 5) return 'text-red-600 font-semibold'
   if (days < 10) return 'text-amber-600 font-semibold'
-  return 'text-slate-500'
+  return 'text-ink-400'
+}
+
+function humanStatus(s: string) {
+  return s.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase())
 }
 
 export default async function ConsultantInvitationsPage() {
@@ -29,18 +33,22 @@ export default async function ConsultantInvitationsPage() {
 
   return (
     <div className="p-8 space-y-6">
-      <h1 className="text-xl font-semibold text-slate-900">Invitations</h1>
+      <h1 className="text-2xl font-display font-semibold text-ink-900">Invitations</h1>
       <div className="space-y-3">
         {invitations.map(inv => {
           const days = daysUntil(inv.expiresAt)
           return (
-            <div key={inv.id} className="bg-white rounded-lg border border-l-4 border-l-indigo-500 border-slate-200 p-5 space-y-3">
+            <div key={inv.id} className="bg-white rounded-lg border border-l-4 border-l-brand-500 border-ink-100 shadow-sm p-5 space-y-3">
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="font-medium text-slate-900">{inv.project.title}</div>
+                  <div className="font-medium text-ink-900">{inv.project.title}</div>
                   {inv.project.scope && (
-                    <div className="text-sm text-slate-500 mt-1">
-                      ${inv.project.scope.fee.toString()} · {inv.project.scope.effortCapHours}h cap · Due {inv.project.scope.dueDate.toLocaleDateString()}
+                    <div className="text-sm text-ink-400 mt-1">
+                      <span className="font-mono">${inv.project.scope.fee.toString()}</span>
+                      {' · '}
+                      <span className="font-mono">{inv.project.scope.effortCapHours}h</span>
+                      {' cap · Due '}
+                      {inv.project.scope.dueDate.toLocaleDateString()}
                     </div>
                   )}
                 </div>
@@ -48,14 +56,14 @@ export default async function ConsultantInvitationsPage() {
                   <span className={`text-xs ${urgencyClass(days)}`}>{days} day{days !== 1 ? 's' : ''} left</span>
                 )}
               </div>
-              <a href={`/invitations/${inv.id}`} className="inline-block px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">
-                View & Respond
+              <a href={`/invitations/${inv.id}`} className="inline-block px-4 py-2 text-sm font-medium rounded-pill bg-brand-600 text-white hover:opacity-90 transition-opacity">
+                View & respond
               </a>
             </div>
           )
         })}
         {invitations.length === 0 && (
-          <div className="bg-white rounded-lg border border-slate-200 p-8 text-center text-sm text-slate-400">No pending invitations.</div>
+          <div className="bg-white rounded-lg border border-ink-100 p-8 text-center text-sm text-ink-400">No pending invitations.</div>
         )}
       </div>
     </div>
