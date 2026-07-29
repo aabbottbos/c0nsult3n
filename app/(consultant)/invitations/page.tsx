@@ -38,7 +38,7 @@ export default async function ConsultantInvitationsPage() {
         {invitations.map(inv => {
           const days = daysUntil(inv.expiresAt)
           return (
-            <div key={inv.id} className="bg-white rounded-lg border border-l-4 border-l-brand-500 border-ink-100 shadow-sm p-5 space-y-3">
+            <div key={inv.id} className="bg-white rounded-lg border border-ink-100 border-l-4 border-l-brand-500 shadow-sm p-5 space-y-3">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="font-medium text-ink-900">{inv.project.title}</div>

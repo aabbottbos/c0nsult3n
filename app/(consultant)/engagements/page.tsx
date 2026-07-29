@@ -37,7 +37,7 @@ export default async function ConsultantEngagementsPage() {
           <a
             key={e.id}
             href={`/engagements/${e.id}`}
-            className="block bg-white rounded-lg border border-l-4 border-l-teal-600 border-ink-100 shadow-sm p-5 hover:border-brand-300 hover:shadow-md transition-colors duration-150"
+            className="block bg-white rounded-lg border border-ink-100 border-l-4 border-l-teal-600 shadow-sm p-5 hover:border-brand-300 hover:shadow-md transition-colors duration-150"
           >
             <div className="flex items-center justify-between">
               <div className="font-medium text-ink-900">{e.project.title}</div>
