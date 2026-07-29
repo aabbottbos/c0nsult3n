@@ -14,29 +14,29 @@ export default async function ConsultantNotificationsPage() {
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-900">Notifications</h1>
+        <h1 className="text-2xl font-display font-semibold text-ink-900">Notifications</h1>
         {unreadCount > 0 && (
           <form action={markAllReadAction}>
-            <button type="submit" className="text-sm text-indigo-600 hover:underline">Mark all read</button>
+            <button type="submit" className="text-sm text-brand-600 hover:text-brand-700">Mark all read</button>
           </form>
         )}
       </div>
       {notifications.length === 0 ? (
-        <div className="bg-white rounded-lg border border-slate-200 p-8 text-center text-sm text-slate-400">No notifications yet.</div>
+        <div className="bg-white rounded-lg border border-ink-100 p-8 text-center text-sm text-ink-400">No notifications yet.</div>
       ) : (
         <ul className="space-y-2">
           {notifications.map(n => (
-            <li key={n.id} className={`bg-white rounded-lg border p-4 flex items-start justify-between gap-4 ${n.read ? 'border-slate-200' : 'border-indigo-200 bg-indigo-50'}`}>
+            <li key={n.id} className={`bg-white rounded-lg border p-4 flex items-start justify-between gap-4 ${n.read ? 'border-ink-100' : 'border-brand-200 bg-brand-50'}`}>
               <div className="flex-1">
-                <p className="text-sm text-slate-800">{n.body}</p>
+                <p className="text-sm text-ink-900">{n.body}</p>
                 <div className="flex items-center gap-3 mt-1">
-                  <a href={n.link} className="text-xs text-indigo-600 hover:underline">View →</a>
-                  <span className="text-xs text-slate-400">{n.createdAt.toLocaleString()}</span>
+                  <a href={n.link} className="text-xs text-brand-600 hover:text-brand-700">View →</a>
+                  <span className="text-xs text-ink-400">{n.createdAt.toLocaleString()}</span>
                 </div>
               </div>
               {!n.read && (
                 <form action={markReadAction.bind(null, n.id)}>
-                  <button type="submit" className="text-xs text-slate-400 hover:text-slate-600 shrink-0">Dismiss</button>
+                  <button type="submit" className="text-xs text-ink-400 hover:text-ink-600 shrink-0">Dismiss</button>
                 </form>
               )}
             </li>
