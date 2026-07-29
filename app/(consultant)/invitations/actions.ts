@@ -11,9 +11,9 @@ async function consultantProfileId() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
   const user = await db.user.findUnique({ where: { clerkId: userId } })
-  if (!user) throw new Error('Account setup in progress — please try again in a moment.')
+  if (!user) redirect('/invitations')
   const profile = await db.consultantProfile.findUnique({ where: { userId: user.id } })
-  if (!profile) throw new Error('Account setup in progress — please try again in a moment.')
+  if (!profile) redirect('/invitations')
   return { userId: user.id, profileId: profile.id }
 }
 
