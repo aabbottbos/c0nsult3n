@@ -20,27 +20,27 @@ export default async function ConsultantLayout({ children }: { children: ReactNo
   })
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <aside className="w-56 bg-slate-800 text-slate-300 flex flex-col flex-shrink-0">
-        <div className="px-4 py-5 font-bold text-white text-sm tracking-tight border-b border-slate-700">
+    <div className="flex min-h-screen bg-surface-subtle">
+      <aside className="w-56 bg-brand-900 text-ink-300 flex flex-col flex-shrink-0">
+        <div className="px-4 py-5 font-semibold text-white text-sm tracking-tight border-b border-brand-800 font-display">
           Consulten
         </div>
         <nav className="flex-1 px-2 py-3 text-sm space-y-0.5">
-          <a href="/invitations" className="flex items-center justify-between px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">
+          <a href="/invitations" className="flex items-center justify-between px-3 py-1.5 rounded text-ink-300 hover:bg-brand-800 hover:text-white transition-colors">
             <span>Invitations</span>
             {pendingInvitations > 0 && (
-              <span className="bg-indigo-500 text-white text-xs rounded-full px-1.5 py-0.5 font-semibold">{pendingInvitations}</span>
+              <span className="bg-brand-500 text-white text-xs rounded-full px-1.5 py-0.5 font-semibold">{pendingInvitations}</span>
             )}
           </a>
-          <a href="/engagements" className="flex items-center px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">Active Engagements</a>
-          <a href="/notifications" className="flex items-center justify-between px-3 py-1.5 rounded text-slate-300 hover:bg-slate-700">
+          <a href="/engagements" className="flex items-center px-3 py-1.5 rounded text-ink-300 hover:bg-brand-800 hover:text-white transition-colors">Active Engagements</a>
+          <a href="/notifications" className="flex items-center justify-between px-3 py-1.5 rounded text-ink-300 hover:bg-brand-800 hover:text-white transition-colors">
             <span>Notifications</span>
             {unreadCount > 0 && (
-              <span className="bg-indigo-500 text-white text-xs rounded-full px-1.5 py-0.5 font-semibold">{unreadCount}</span>
+              <span className="bg-brand-500 text-white text-xs rounded-full px-1.5 py-0.5 font-semibold">{unreadCount}</span>
             )}
           </a>
         </nav>
-        <div className="px-3 py-4 border-t border-slate-700">
+        <div className="px-3 py-4 border-t border-brand-800">
           <SignOutButton />
         </div>
       </aside>
