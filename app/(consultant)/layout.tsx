@@ -8,16 +8,17 @@ import type { ReactNode } from 'react'
 export default async function ConsultantLayout({ children }: { children: ReactNode }) {
   await requireRole('consultant')
   const { userId } = await auth()
-  const user = await db.user.findUniqueOrThrow({ where: { clerkId: userId! } })
-  const profile = await db.consultantProfile.findUniqueOrThrow({ where: { userId: user.id } })
+  const user = userId ? await db.user.findUnique({ where: { clerkId: userId } }) : null
+  const profile = user ? await db.consultantProfile.findUnique({ where: { userId: user.id } }) : null
 
-  const unreadCount = await countUnread(user.id)
-  const pendingInvitations = await db.consultantInvitation.count({
+  // User/profile rows not yet created (webhook lag on first sign-in) — render shell without DB data
+  const unreadCount = user ? await countUnread(user.id) : 0
+  const pendingInvitations = profile ? await db.consultantInvitation.count({
     where: {
       consultantId: profile.id,
       status: { in: ['SENT', 'VIEWED', 'QUESTIONS_ASKED'] },
     },
-  })
+  }) : 0
 
   return (
     <div className="flex min-h-screen bg-surface-subtle">

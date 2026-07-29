@@ -8,13 +8,15 @@ import type { ReactNode } from 'react'
 export default async function ClientLayout({ children }: { children: ReactNode }) {
   await requireRole('client')
   const { userId } = await auth()
-  const user = await db.user.findUniqueOrThrow({ where: { clerkId: userId! } })
-  const unreadCount = await countUnread(user.id)
-  const projects = await db.project.findMany({
+  const user = userId ? await db.user.findUnique({ where: { clerkId: userId } }) : null
+
+  // User row not yet created (webhook lag on first sign-in) — render shell without DB data
+  const unreadCount = user ? await countUnread(user.id) : 0
+  const projects = user ? await db.project.findMany({
     where: { client: { contacts: { some: { userId: user.id } } } },
     orderBy: { createdAt: 'desc' },
     select: { id: true, title: true, status: true },
-  })
+  }) : []
 
   const needsAction = (status: string) =>
     ['SCOPE_APPROVED', 'SHORTLIST_READY', 'UNDER_REVIEW'].includes(status)
