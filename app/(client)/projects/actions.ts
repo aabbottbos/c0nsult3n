@@ -17,7 +17,8 @@ async function dbUserId() {
   await requireRole('client')
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
-  const user = await db.user.findUniqueOrThrow({ where: { clerkId: userId } })
+  const user = await db.user.findUnique({ where: { clerkId: userId } })
+  if (!user) throw new Error('Account setup in progress — please try again in a moment.')
   return user.id
 }
 
@@ -25,7 +26,8 @@ export async function createProjectAction(formData: FormData) {
   const uid = await dbUserId()
   const title = formData.get('title') as string
   const description = formData.get('description') as string
-  const contact = await db.clientContact.findUniqueOrThrow({ where: { userId: uid } })
+  const contact = await db.clientContact.findUnique({ where: { userId: uid } })
+  if (!contact) throw new Error('Account setup in progress — please try again in a moment.')
   const project = await createProject({ clientId: contact.organizationId, title, description }, uid)
   await submitProject(project.id, uid)
   redirect(`/projects/${project.id}`)

@@ -13,12 +13,12 @@ function humanStatus(s: string) {
 
 export default async function ClientProjectsPage() {
   const { userId } = await auth()
-  const user = await db.user.findUniqueOrThrow({ where: { clerkId: userId! } })
-  const contact = await db.clientContact.findUniqueOrThrow({ where: { userId: user.id } })
-  const projects = await db.project.findMany({
+  const user = userId ? await db.user.findUnique({ where: { clerkId: userId } }) : null
+  const contact = user ? await db.clientContact.findUnique({ where: { userId: user.id } }) : null
+  const projects = contact ? await db.project.findMany({
     where: { clientId: contact.organizationId },
     orderBy: { createdAt: 'desc' },
-  })
+  }) : []
 
   const needsAction = (status: string) => status in ACTION_LABELS
 

@@ -18,8 +18,9 @@ function humanStatus(s: string) {
 export default async function ClientEngagementDetailPage({ params }: { params: Promise<{ id: string; engagementId: string }> }) {
   const { id, engagementId } = await params
   const { userId } = await auth()
-  const user = await db.user.findUniqueOrThrow({ where: { clerkId: userId! } })
-  const contact = await db.clientContact.findUniqueOrThrow({ where: { userId: user.id } })
+  const user = userId ? await db.user.findUnique({ where: { clerkId: userId } }) : null
+  const contact = user ? await db.clientContact.findUnique({ where: { userId: user.id } }) : null
+  if (!contact) notFound()
 
   const engagement = await db.engagement.findUnique({
     where: { id: engagementId, clientContactId: contact.id },
@@ -28,7 +29,7 @@ export default async function ClientEngagementDetailPage({ params }: { params: P
       deliverables: { orderBy: { createdAt: 'desc' } },
       communications: { orderBy: { createdAt: 'asc' } },
       project: true,
-      feedbacks: { where: { submittedBy: user.id } },
+      feedbacks: { where: { submittedBy: user!.id } },
       paymentRecord: { select: { amount: true, paymentStatus: true } },
     },
   })

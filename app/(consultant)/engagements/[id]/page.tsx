@@ -18,8 +18,9 @@ function humanStatus(s: string) {
 export default async function ConsultantEngagementDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { userId } = await auth()
-  const user = await db.user.findUniqueOrThrow({ where: { clerkId: userId! } })
-  const profile = await db.consultantProfile.findUniqueOrThrow({ where: { userId: user.id } })
+  const user = userId ? await db.user.findUnique({ where: { clerkId: userId } }) : null
+  const profile = user ? await db.consultantProfile.findUnique({ where: { userId: user.id } }) : null
+  if (!profile) notFound()
 
   const engagement = await db.engagement.findUnique({
     where: { id, consultantId: profile.id },
@@ -29,7 +30,7 @@ export default async function ConsultantEngagementDetailPage({ params }: { param
       deliverables: { orderBy: { createdAt: 'desc' } },
       communications: { orderBy: { createdAt: 'asc' } },
       revisionRequests: { where: { status: 'OPEN' }, orderBy: { createdAt: 'desc' }, take: 1 },
-      feedbacks: { where: { submittedBy: user.id } },
+      feedbacks: { where: { submittedBy: user!.id } },
       paymentRecord: { select: { payoutAmount: true, payoutStatus: true } },
     },
   })

@@ -15,8 +15,9 @@ function humanStatus(s: string) {
 export default async function ClientProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { userId } = await auth()
-  const user = await db.user.findUniqueOrThrow({ where: { clerkId: userId! } })
-  const contact = await db.clientContact.findUniqueOrThrow({ where: { userId: user.id } })
+  const user = userId ? await db.user.findUnique({ where: { clerkId: userId } }) : null
+  const contact = user ? await db.clientContact.findUnique({ where: { userId: user.id } }) : null
+  if (!contact) notFound()
 
   const project = await db.project.findUnique({
     where: { id, clientId: contact.organizationId },

@@ -10,8 +10,9 @@ function humanStatus(s: string) {
 export default async function ConsultantInvitationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { userId } = await auth()
-  const user = await db.user.findUniqueOrThrow({ where: { clerkId: userId! } })
-  const profile = await db.consultantProfile.findUniqueOrThrow({ where: { userId: user.id } })
+  const user = userId ? await db.user.findUnique({ where: { clerkId: userId } }) : null
+  const profile = user ? await db.consultantProfile.findUnique({ where: { userId: user.id } }) : null
+  if (!profile) notFound()
 
   const invitation = await db.consultantInvitation.findUnique({
     where: { id, consultantId: profile.id },
