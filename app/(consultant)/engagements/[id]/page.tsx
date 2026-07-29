@@ -6,9 +6,13 @@ import { submitDeliverableAction, resubmitDeliverableAction, sendMessageAction, 
 const COMM_TYPES = ['CLARIFICATION', 'DOCUMENT_REQUEST', 'REVISION_RESPONSE', 'ISSUE_FLAG'] as const
 const COMM_LABELS: Record<string, string> = {
   CLARIFICATION: 'Clarification',
-  DOCUMENT_REQUEST: 'Document Request',
-  REVISION_RESPONSE: 'Revision Response',
-  ISSUE_FLAG: 'Issue Flag',
+  DOCUMENT_REQUEST: 'Document request',
+  REVISION_RESPONSE: 'Revision response',
+  ISSUE_FLAG: 'Issue flag',
+}
+
+function humanStatus(s: string) {
+  return s.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase())
 }
 
 export default async function ConsultantEngagementDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -39,139 +43,139 @@ export default async function ConsultantEngagementDetailPage({ params }: { param
 
   return (
     <div className="p-8 space-y-6 max-w-2xl">
-      <a href="/engagements" className="text-sm text-indigo-600 hover:underline">← Engagements</a>
+      <a href="/engagements" className="text-sm text-brand-600 hover:text-brand-700">← Engagements</a>
       <div className="flex items-start justify-between">
-        <h1 className="text-xl font-semibold text-slate-900">{engagement.project.title}</h1>
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">{engagement.status}</span>
+        <h1 className="text-2xl font-display font-semibold text-ink-900">{engagement.project.title}</h1>
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ink-100 text-ink-600">{humanStatus(engagement.status)}</span>
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-700">Scope</h2>
+      <div className="bg-white rounded-lg border border-ink-100 shadow-sm p-6 space-y-3">
+        <h2 className="text-sm font-semibold text-ink-700">Scope</h2>
         <dl className="grid grid-cols-2 gap-3 text-sm">
-          <div className="col-span-2"><dt className="text-slate-500">Deliverable</dt><dd className="text-slate-900 mt-0.5">{engagement.scope.deliverable}</dd></div>
-          <div className="col-span-2"><dt className="text-slate-500">Acceptance criteria</dt><dd className="text-slate-900 mt-0.5">{engagement.scope.acceptanceCriteria}</dd></div>
-          <div><dt className="text-slate-500">Fee</dt><dd className="text-slate-900 mt-0.5">${engagement.scope.fee.toString()}</dd></div>
-          <div><dt className="text-slate-500">Effort cap</dt><dd className="text-slate-900 mt-0.5">{engagement.scope.effortCapHours}h</dd></div>
-          <div><dt className="text-slate-500">Due date</dt><dd className="text-slate-900 mt-0.5">{engagement.scope.dueDate.toLocaleDateString()}</dd></div>
+          <div className="col-span-2"><dt className="text-ink-400">Deliverable</dt><dd className="text-ink-900 mt-0.5">{engagement.scope.deliverable}</dd></div>
+          <div className="col-span-2"><dt className="text-ink-400">Acceptance criteria</dt><dd className="text-ink-900 mt-0.5">{engagement.scope.acceptanceCriteria}</dd></div>
+          <div><dt className="text-ink-400">Fee</dt><dd className="font-mono text-ink-900 mt-0.5">${engagement.scope.fee.toString()}</dd></div>
+          <div><dt className="text-ink-400">Effort cap</dt><dd className="font-mono text-ink-900 mt-0.5">{engagement.scope.effortCapHours}h</dd></div>
+          <div><dt className="text-ink-400">Due date</dt><dd className="text-ink-900 mt-0.5">{engagement.scope.dueDate.toLocaleDateString()}</dd></div>
         </dl>
       </div>
 
       {engagement.paymentRecord && (
-        <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-2 text-sm">
-          <h2 className="font-semibold text-slate-700">Payout</h2>
+        <div className="bg-white rounded-lg border border-ink-100 shadow-sm p-6 space-y-2 text-sm">
+          <h2 className="font-semibold text-ink-700">Payout</h2>
           <div className="flex gap-6">
-            <div><p className="text-slate-500">Payout amount</p><p className="font-medium">{engagement.paymentRecord.payoutAmount ? `$${engagement.paymentRecord.payoutAmount.toString()}` : 'TBD'}</p></div>
-            <div><p className="text-slate-500">Status</p><p className="font-medium">{engagement.paymentRecord.payoutStatus}</p></div>
+            <div><p className="text-ink-400">Payout amount</p><p className="font-mono text-ink-900">{engagement.paymentRecord.payoutAmount ? `$${engagement.paymentRecord.payoutAmount.toString()}` : 'TBD'}</p></div>
+            <div><p className="text-ink-400">Status</p><p className="text-ink-900">{humanStatus(engagement.paymentRecord.payoutStatus)}</p></div>
           </div>
         </div>
       )}
 
       {canSubmit && (
-        <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-slate-700">Submit Deliverable</h2>
+        <div className="bg-white rounded-lg border border-ink-100 shadow-sm p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-ink-700">Submit deliverable</h2>
           <form action={submitDeliverableAction.bind(null, engagement.id)} encType="multipart/form-data" className="space-y-4">
             <div>
-              <label htmlFor="file-input" className="block text-sm font-medium text-slate-700 mb-1">Deliverable file</label>
-              <input id="file-input" name="file" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip" className="w-full text-sm text-slate-700 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+              <label htmlFor="file-input" className="block text-sm font-medium text-ink-700 mb-1">Deliverable file</label>
+              <input id="file-input" name="file" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip" className="w-full text-sm text-ink-700 file:mr-3 file:py-1.5 file:px-3 file:rounded-pill file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
             </div>
             <div>
-              <label htmlFor="notes-input" className="block text-sm font-medium text-slate-700 mb-1">Work summary <span className="text-red-500">*</span></label>
-              <textarea id="notes-input" name="consultantNotes" required rows={4} placeholder="Describe what you completed and how it meets the acceptance criteria." className="w-full text-sm border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <label htmlFor="notes-input" className="block text-sm font-medium text-ink-700 mb-1">Work summary <span className="text-red-500">*</span></label>
+              <textarea id="notes-input" name="consultantNotes" required rows={4} placeholder="Describe what you completed and how it meets the acceptance criteria." className="w-full text-sm border border-ink-200 rounded-md px-3 py-2 text-ink-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500" />
             </div>
-            <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">Submit</button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium rounded-pill bg-brand-600 text-white hover:opacity-90 transition-opacity">Submit</button>
           </form>
         </div>
       )}
 
       {canResubmit && openRevision && (
-        <div className="bg-amber-50 rounded-lg border border-amber-200 p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-amber-800">Revision Requested</h2>
+        <div className="bg-amber-50 rounded-lg border border-amber-100 p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-amber-800">Revision requested</h2>
           <p className="text-sm text-amber-700"><span className="font-medium">Reason:</span> {openRevision.reason}</p>
           {openRevision.dueDate && <p className="text-sm text-amber-700"><span className="font-medium">Due:</span> {openRevision.dueDate.toLocaleDateString()}</p>}
           <p className="text-xs text-amber-600">In-scope: {openRevision.inScopeConfirmation ? 'Yes' : 'No'}</p>
           <form action={resubmitDeliverableAction.bind(null, engagement.id, openRevision.id)} encType="multipart/form-data" className="space-y-4 pt-2 border-t border-amber-200">
-            <h3 className="text-sm font-semibold text-slate-700">Resubmit</h3>
+            <h3 className="text-sm font-semibold text-ink-700">Resubmit</h3>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Updated file</label>
-              <input name="file" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip" className="w-full text-sm text-slate-700 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+              <label className="block text-sm font-medium text-ink-700 mb-1">Updated file</label>
+              <input name="file" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip" className="w-full text-sm text-ink-700 file:mr-3 file:py-1.5 file:px-3 file:rounded-pill file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Updated work summary <span className="text-red-500">*</span></label>
-              <textarea name="consultantNotes" required rows={4} placeholder="Describe the revisions you made." className="w-full text-sm border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <label className="block text-sm font-medium text-ink-700 mb-1">Updated work summary <span className="text-red-500">*</span></label>
+              <textarea name="consultantNotes" required rows={4} placeholder="Describe the revisions you made." className="w-full text-sm border border-ink-200 rounded-md px-3 py-2 text-ink-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500" />
             </div>
-            <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-amber-600 text-white hover:bg-amber-700">Resubmit</button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium rounded-pill bg-amber-600 text-white hover:opacity-90 transition-opacity">Resubmit</button>
           </form>
         </div>
       )}
 
       {latestDeliverable && !canSubmit && !canResubmit && (
-        <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-700">Latest Deliverable</h2>
-          <div className="text-sm text-slate-600 space-y-2">
+        <div className="bg-white rounded-lg border border-ink-100 shadow-sm p-6 space-y-3">
+          <h2 className="text-sm font-semibold text-ink-700">Latest deliverable</h2>
+          <div className="text-sm text-ink-600 space-y-2">
             <p>Submitted {latestDeliverable.submittedAt?.toLocaleDateString() ?? '—'}</p>
-            {latestDeliverable.fileUrl && <a href={latestDeliverable.fileUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline break-all block">{latestDeliverable.fileUrl}</a>}
+            {latestDeliverable.fileUrl && <a href={latestDeliverable.fileUrl} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:text-brand-700 break-all block">{latestDeliverable.fileUrl}</a>}
             {latestDeliverable.aiQaRunAt
-              ? <div className="mt-2 p-3 bg-slate-50 rounded text-xs text-slate-700"><span className="font-medium">AI QA:</span> {latestDeliverable.aiQaNotes}</div>
-              : <p className="text-slate-400 text-xs">AI QA running…</p>
+              ? <div className="mt-2 p-3 bg-teal-50 border border-teal-100 rounded-lg text-xs text-ink-700"><span className="font-medium text-teal-700">AI QA:</span> {latestDeliverable.aiQaNotes}</div>
+              : <p className="text-ink-400 text-xs">AI QA running…</p>
             }
           </div>
         </div>
       )}
 
       {engagement.status === 'CLOSED' && !hasFeedback && (
-        <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-slate-700">Leave Feedback</h2>
+        <div className="bg-white rounded-lg border border-ink-100 shadow-sm p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-ink-700">Leave feedback</h2>
           <form action={createFeedbackAction.bind(null, engagement.id)} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Satisfaction (1–5)</label>
-              <select name="satisfaction" required className="text-sm border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <label className="block text-sm font-medium text-ink-700 mb-1">Satisfaction (1–5)</label>
+              <select name="satisfaction" required className="border border-ink-200 rounded-md px-3 py-2 text-sm text-ink-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
                 {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Would you work with this client again?</label>
-              <select name="repeatIntent" required className="text-sm border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <label className="block text-sm font-medium text-ink-700 mb-1">Would you work with this client again?</label>
+              <select name="repeatIntent" required className="border border-ink-200 rounded-md px-3 py-2 text-sm text-ink-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
                 <option value="true">Yes</option>
                 <option value="false">No</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Comments (optional)</label>
-              <textarea name="comments" rows={3} className="w-full text-sm border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <label className="block text-sm font-medium text-ink-700 mb-1">Comments (optional)</label>
+              <textarea name="comments" rows={3} className="w-full text-sm border border-ink-200 rounded-md px-3 py-2 text-ink-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500" />
             </div>
-            <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">Submit Feedback</button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium rounded-pill bg-brand-600 text-white hover:opacity-90 transition-opacity">Submit feedback</button>
           </form>
         </div>
       )}
 
       {engagement.status === 'CLOSED' && hasFeedback && (
-        <div className="bg-green-50 rounded-lg border border-green-200 p-4">
-          <p className="text-sm text-green-700">Feedback submitted. Thank you.</p>
+        <div className="bg-teal-50 rounded-lg border border-teal-100 p-4">
+          <p className="text-sm text-teal-700">Feedback submitted. Thank you.</p>
         </div>
       )}
 
-      <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-slate-700">Messages</h2>
+      <div className="bg-white rounded-lg border border-ink-100 shadow-sm p-6 space-y-4">
+        <h2 className="text-sm font-semibold text-ink-700">Messages</h2>
         {engagement.communications.length > 0 && (
           <ul className="space-y-3 mb-4">
             {engagement.communications.map(m => (
-              <li key={m.id} className="text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">{COMM_LABELS[m.messageType] ?? m.messageType}</span>
-                  <span className="font-medium text-slate-700 capitalize">{m.senderRole}</span>
-                  <span className="text-slate-400 text-xs">{m.createdAt.toLocaleString()}</span>
+              <li key={m.id} className={`text-sm rounded-lg p-3 border ${m.senderRole === 'consultant' ? 'bg-brand-50 border-brand-100' : 'bg-surface-subtle border-ink-100'}`}>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-ink-100 text-ink-600">{COMM_LABELS[m.messageType] ?? m.messageType}</span>
+                  <span className="font-medium text-ink-700 capitalize">{m.senderRole}</span>
+                  <span className="text-ink-400 text-xs">{m.createdAt.toLocaleString()}</span>
                 </div>
-                <p className="text-slate-600 mt-0.5">{m.body}</p>
+                <p className="text-ink-600">{m.body}</p>
               </li>
             ))}
           </ul>
         )}
         <form action={sendMessageAction.bind(null, engagement.id)} className="space-y-3">
-          <select name="messageType" required className="text-sm border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <select name="messageType" required className="border border-ink-200 rounded-md px-3 py-2 text-sm text-ink-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
             {COMM_TYPES.map(t => <option key={t} value={t}>{COMM_LABELS[t]}</option>)}
           </select>
-          <textarea name="body" required rows={3} placeholder="Message…" className="w-full text-sm border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-          <button type="submit" className="px-3 py-1.5 text-sm font-medium rounded bg-indigo-600 text-white hover:bg-indigo-700">Send</button>
+          <textarea name="body" required rows={3} placeholder="Message…" className="w-full text-sm border border-ink-200 rounded-md px-3 py-2 text-ink-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500" />
+          <button type="submit" className="px-4 py-2 text-sm font-medium rounded-pill bg-brand-600 text-white hover:opacity-90 transition-opacity">Send</button>
         </form>
       </div>
     </div>
