@@ -33,7 +33,7 @@ export default async function ConsultantLayout({ children }: { children: ReactNo
             )}
           </a>
           <a href="/engagements" className="flex items-center px-3 py-1.5 rounded text-ink-300 hover:bg-brand-800 hover:text-white transition-colors">Active Engagements</a>
-          <a href="/notifications" className="flex items-center justify-between px-3 py-1.5 rounded text-ink-300 hover:bg-brand-800 hover:text-white transition-colors">
+          <a href="/consultant/notifications" className="flex items-center justify-between px-3 py-1.5 rounded text-ink-300 hover:bg-brand-800 hover:text-white transition-colors">
             <span>Notifications</span>
             {unreadCount > 0 && (
               <span className="bg-brand-500 text-white text-xs rounded-full px-1.5 py-0.5 font-semibold">{unreadCount}</span>
