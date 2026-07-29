@@ -28,7 +28,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           <ul className="space-y-2">
             {org.projects.map(p => (
               <li key={p.id} className="text-sm">
-                <a href={`/projects/${p.id}`} className="text-indigo-600 hover:underline">{p.title}</a>
+                <a href={`/admin/projects/${p.id}`} className="text-indigo-600 hover:underline">{p.title}</a>
                 <span className="ml-2 text-slate-500 text-xs">{p.status}</span>
               </li>
             ))}
